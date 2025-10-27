@@ -1,0 +1,17 @@
+/* src/styles/design-tokens.css */
+
+:root {
+  --radius: 12px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --shadow-soft: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-medium: 0 2px 8px rgba(0, 0, 0, 0.12);
+  --shadow-strong: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.card {
+  border-radius: var(--radius);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-soft);
+}
