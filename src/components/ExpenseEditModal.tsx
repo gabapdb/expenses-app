@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { doc, setDoc, writeBatch } from "firebase/firestore";
 import { z } from "zod";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
@@ -9,6 +9,7 @@ import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { isoDateToYYYYMM } from "@/utils/time";
 
 interface ExpenseEditModalProps {
   yyyyMM: string;
@@ -26,6 +27,63 @@ export default function ExpenseEditModal({
   const [values, setValues] = useState<Expense>(expense);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(expense.updatedAt ?? 0);
+
+  const trimmedFields = useMemo(
+    () => ({
+      projectId: values.projectId?.trim() ?? "",
+      category: values.category?.trim() ?? "",
+      subCategory: values.subCategory?.trim() ?? "",
+    }),
+    [values.projectId, values.category, values.subCategory]
+  );
+
+  const validationHints = useMemo(() => {
+    const missing: string[] = [];
+
+    if (!trimmedFields.projectId) {
+      missing.push("Project");
+    }
+    if (!trimmedFields.category) {
+      missing.push("Category");
+    }
+    if (!trimmedFields.subCategory) {
+      missing.push("Sub-category");
+    }
+
+    if (!Number.isFinite(values.amount) || values.amount < 0) {
+      missing.push("Amount");
+    }
+
+    return {
+      missing,
+      isValid: missing.length === 0,
+    };
+  }, [trimmedFields, values.amount]);
+
+  useEffect(() => {
+    const incomingUpdatedAt = expense.updatedAt ?? 0;
+
+    if (expense.id !== values.id) {
+      setValues(expense);
+      setIsDirty(false);
+      setLastSyncedAt(incomingUpdatedAt);
+      return;
+    }
+
+    if (!isDirty) {
+      setValues(expense);
+      setLastSyncedAt(incomingUpdatedAt);
+      return;
+    }
+
+    if (incomingUpdatedAt > lastSyncedAt) {
+      setValues(expense);
+      setIsDirty(false);
+      setLastSyncedAt(incomingUpdatedAt);
+    }
+  }, [expense, isDirty, lastSyncedAt, values.id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -34,14 +92,55 @@ export default function ExpenseEditModal({
     const { name, value } = target;
     const isCheckbox =
       target instanceof HTMLInputElement && target.type === "checkbox";
-    const newValue = isCheckbox
-      ? (target as HTMLInputElement).checked
-      : value;
 
-    setValues((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+    setValues((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      switch (name) {
+        case "paid":
+          {
+            const nextPaid = isCheckbox
+              ? (target as HTMLInputElement).checked
+              : Boolean(value);
+            if (nextPaid !== prev.paid) {
+              next.paid = nextPaid;
+              changed = true;
+            }
+          }
+          break;
+        case "amount": {
+          if (typeof value === "string" && value.trim() === "") {
+            if (prev.amount !== 0) {
+              next.amount = 0;
+              changed = true;
+            }
+          } else {
+            const numeric = Number(value);
+            if (Number.isFinite(numeric) && numeric !== prev.amount) {
+              next.amount = numeric;
+              changed = true;
+            }
+          }
+          break;
+        }
+        default:
+          if ((next as Record<string, unknown>)[name] !== value) {
+            (next as Record<string, unknown>)[name] = value;
+            changed = true;
+          }
+      }
+
+      if (!changed) {
+        return prev;
+      }
+
+      if (!isDirty) {
+        setIsDirty(true);
+      }
+
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -49,24 +148,86 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
+      if (!validationHints.isValid) {
+        throw new Error(
+          `Please complete the following before saving: ${validationHints.missing.join(", ")}`
+        );
+      }
+
+      const trimmedProjectId = trimmedFields.projectId;
+      if (!trimmedProjectId) {
+        throw new Error("Project is required.");
+      }
+
+      const trimmedCategory = trimmedFields.category;
+      if (!trimmedCategory) {
+        throw new Error("Category is required.");
+      }
+
+      const trimmedSubCategory = trimmedFields.subCategory;
+      if (!trimmedSubCategory) {
+        throw new Error("Sub-category is required.");
+      }
+
       // ✅ Normalize values before Zod validation
+      const targetMonth =
+        isoDateToYYYYMM(values.datePaid) ??
+        isoDateToYYYYMM(values.invoiceDate) ??
+        yyyyMM;
+
       const normalized = {
         ...values,
-        projectId: values.projectId?.trim() || "unassigned",
-        yyyyMM, // <-- ensure it's always included
+        projectId: trimmedProjectId,
+        category: trimmedCategory,
+        subCategory: trimmedSubCategory,
+        yyyyMM: targetMonth,
         amount: Number(values.amount) || 0,
         paid: Boolean(values.paid),
         updatedAt: Date.now(),
+        createdAt: values.createdAt ?? Date.now(),
       };
 
       // ✅ Validate shape via Zod
       const parsed = ExpenseSchema.parse(normalized);
 
-      // ✅ Save to Firestore
-      const ref = doc(db, "expenses", yyyyMM, "items", parsed.id);
-      await setDoc(ref, parsed, { merge: true });
+      const fieldsToCompare: (keyof Expense)[] = [
+        "projectId",
+        "yyyyMM",
+        "payee",
+        "category",
+        "subCategory",
+        "details",
+        "modeOfPayment",
+        "invoiceDate",
+        "datePaid",
+        "amount",
+        "paid",
+      ];
+
+      const hasChanges = fieldsToCompare.some((key) => parsed[key] !== expense[key]);
+
+      if (!hasChanges && parsed.yyyyMM === yyyyMM) {
+        onSaved?.(expense);
+        onClose();
+        return;
+      }
+
+      const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
+
+      // ✅ Save to Firestore (move document when month changes)
+      if (parsed.yyyyMM === yyyyMM) {
+        await setDoc(destinationRef, parsed, { merge: true });
+      } else {
+        const sourceRef = doc(db, "expenses", yyyyMM, "items", parsed.id);
+        const batch = writeBatch(db);
+        batch.set(destinationRef, parsed, { merge: true });
+        batch.delete(sourceRef);
+        await batch.commit();
+      }
 
       onSaved?.(parsed);
+      setIsDirty(false);
+      setLastSyncedAt(parsed.updatedAt ?? Date.now());
       onClose();
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -163,6 +324,12 @@ export default function ExpenseEditModal({
           </div>
         </div>
 
+        {!validationHints.isValid && (
+          <div className="text-sm text-amber-600 mt-4">
+            Complete required fields: {validationHints.missing.join(", ")}
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 mt-6">
           <Button
             type="button"
@@ -174,7 +341,7 @@ export default function ExpenseEditModal({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !validationHints.isValid}
             className="bg-gray-900 text-white hover:bg-black"
           >
             {saving ? "Saving…" : "Save Changes"}
