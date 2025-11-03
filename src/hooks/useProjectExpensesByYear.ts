@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { getFirestore, collection, getDocs } from "firebase/firestore";
-import { ExpenseZod, type ExpenseZodType } from "@/domain/validation/expenseSchema";
-import { allMonths, getMonthName } from "@/utils/expenses";
+import { useEffect, useMemo, useState } from "react";
+import { collectionGroup, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/core/firebase";
+import { mapExpense } from "@/domain/mapping";
+import type { Expense } from "@/domain/models";
+import { allMonths, getMonthName, getPaymentTimestamp } from "@/utils/expenses";
 
 interface AggregatedExpenseData {
   byMonth: Record<string, Record<string, number>>;
@@ -13,88 +15,137 @@ interface AggregatedExpenseData {
   availableYears: number[];
   loading: boolean;
   error: string | null;
+  resolvedYear: number;
 }
 
 /**
  * Aggregates all expenses for a project by month & category for a specific year.
  * Uses datePaid as the time source.
  */
-export function useProjectExpensesByYear(projectId: string, year: number): AggregatedExpenseData {
+export function useProjectExpensesByYear(
+  projectId: string,
+  requestedYear: number
+): AggregatedExpenseData {
+  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expenses, setExpenses] = useState<ExpenseZodType[]>([]);
 
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId) {
+      setAllExpenses([]);
+      setError(null);
+      setLoading(false);
+      return;
+    }
 
-    const db = getFirestore();
+    let cancelled = false;
 
     async function fetchExpenses() {
+      setLoading(true);
+      setError(null);
+
       try {
-        const allDocs: ExpenseZodType[] = [];
+        const q = query(collectionGroup(db, "items"), where("projectId", "==", projectId));
+        const snapshot = await getDocs(q);
 
-        // Loop through all 12 months in the selected year
-        for (let m = 0; m < 12; m++) {
-          const yyyyMM = `${year}${String(m + 1).padStart(2, "0")}`;
-          const collRef = collection(db, "expenses", yyyyMM, "items");
-          const snap = await getDocs(collRef);
+        if (cancelled) return;
 
-          snap.forEach((doc) => {
-            try {
-              const parsed = ExpenseZod.parse(doc.data());
-              if (parsed.projectId === projectId) {
-                allDocs.push(parsed);
-              }
-            } catch {
-              /* ignore malformed docs */
-            }
-          });
+        const expenses = snapshot.docs.map((docSnap) =>
+          mapExpense(docSnap.id, docSnap.data())
+        );
+
+        setAllExpenses(expenses);
+      } catch (err) {
+        if (cancelled) return;
+
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Failed to load expenses");
         }
 
-        setExpenses(allDocs);
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load expenses");
+        setAllExpenses([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     fetchExpenses();
-  }, [projectId, year]);
 
-  /** Derived aggregates */
-  return useMemo(() => {
-    const byMonth: Record<string, Record<string, number>> = {};
-    const byCategory: Record<string, number> = {};
-    const totalsByMonth: Record<string, number> = {};
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
+
+  const aggregates = useMemo(() => {
+    const expensesByYear = new Map<number, Expense[]>();
     const yearSet = new Set<number>();
 
-    for (const e of expenses) {
-      const paid = e.datePaid ? new Date(e.datePaid) : null;
-      if (!paid || paid.getFullYear() !== year) continue;
+    for (const expense of allExpenses) {
+      const timestamp = getPaymentTimestamp(expense);
+      if (!Number.isFinite(timestamp)) continue;
 
-      const monthName = getMonthName(paid.getMonth());
-      const cat = e.category || "Uncategorized";
+      const paymentDate = new Date(timestamp);
+      if (Number.isNaN(paymentDate.getTime())) continue;
+
+      const paymentYear = paymentDate.getFullYear();
+      yearSet.add(paymentYear);
+
+      const bucket = expensesByYear.get(paymentYear);
+      if (bucket) {
+        bucket.push(expense);
+      } else {
+        expensesByYear.set(paymentYear, [expense]);
+      }
+    }
+
+    if (yearSet.size === 0 && Number.isFinite(requestedYear)) {
+      yearSet.add(requestedYear);
+    }
+
+    const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+    const resolvedYear = availableYears.includes(requestedYear)
+      ? requestedYear
+      : availableYears[0] ?? requestedYear;
+
+    const targetExpenses = expensesByYear.get(resolvedYear) ?? [];
+
+    const byMonth: Record<string, Record<string, number>> = {};
+    const categoryTotals: Record<string, number> = {};
+    const totalsByMonth: Record<string, number> = {};
+
+    for (const expense of targetExpenses) {
+      const timestamp = getPaymentTimestamp(expense);
+      const paymentDate = new Date(timestamp);
+      const monthName = getMonthName(paymentDate.getMonth());
+      const category = expense.category || "Uncategorized";
 
       byMonth[monthName] ??= {};
-      byMonth[monthName][cat] = (byMonth[monthName][cat] ?? 0) + e.amount;
+      byMonth[monthName][category] = (byMonth[monthName][category] ?? 0) + expense.amount;
 
-      byCategory[cat] = (byCategory[cat] ?? 0) + e.amount;
-      totalsByMonth[monthName] = (totalsByMonth[monthName] ?? 0) + e.amount;
-
-      yearSet.add(paid.getFullYear());
+      totalsByMonth[monthName] = (totalsByMonth[monthName] ?? 0) + expense.amount;
+      categoryTotals[category] = (categoryTotals[category] ?? 0) + expense.amount;
     }
 
-    const grandTotal = Object.values(totalsByMonth).reduce((a, b) => a + b, 0);
-    const availableYears = Array.from(yearSet).sort((a, b) => b - a);
-
-    // Ensure all months appear (even with 0s)
-    for (const m of allMonths) {
-      totalsByMonth[m] ??= 0;
-      byMonth[m] ??= {};
+    for (const month of allMonths) {
+      totalsByMonth[month] ??= 0;
+      byMonth[month] ??= {};
     }
 
-    return { byMonth, byCategory, totalsByMonth, grandTotal, availableYears, loading, error };
-  }, [expenses, loading, error, year]);
+    const sortedCategoryEntries = Object.entries(categoryTotals).sort((a, b) =>
+      a[0].localeCompare(b[0])
+    );
+    const byCategory: Record<string, number> = {};
+    for (const [category, total] of sortedCategoryEntries) {
+      byCategory[category] = total;
+    }
+
+    const grandTotal = Object.values(totalsByMonth).reduce((sum, value) => sum + value, 0);
+
+    return { byMonth, byCategory, totalsByMonth, grandTotal, availableYears, resolvedYear };
+  }, [allExpenses, requestedYear]);
+
+  return { ...aggregates, loading, error };
 }
