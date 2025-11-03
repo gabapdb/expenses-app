@@ -30,7 +30,7 @@ export default function ExpenseEditModal({
   const [isDirty, setIsDirty] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState(expense.updatedAt ?? 0);
 
-  const trimmedFields = useMemo(
+  const memoizedTrimmedFields = useMemo(
     () => ({
       projectId: values.projectId?.trim() ?? "",
       category: values.category?.trim() ?? "",
@@ -39,16 +39,16 @@ export default function ExpenseEditModal({
     [values.projectId, values.category, values.subCategory]
   );
 
-  const validationHints = useMemo(() => {
+  const memoizedValidationHints = useMemo(() => {
     const missing: string[] = [];
 
-    if (!trimmedFields.projectId) {
+    if (!memoizedTrimmedFields.projectId) {
       missing.push("Project");
     }
-    if (!trimmedFields.category) {
+    if (!memoizedTrimmedFields.category) {
       missing.push("Category");
     }
-    if (!trimmedFields.subCategory) {
+    if (!memoizedTrimmedFields.subCategory) {
       missing.push("Sub-category");
     }
 
@@ -60,7 +60,7 @@ export default function ExpenseEditModal({
       missing,
       isValid: missing.length === 0,
     };
-  }, [trimmedFields, values.amount]);
+  }, [memoizedTrimmedFields, values.amount]);
 
   useEffect(() => {
     const incomingUpdatedAt = expense.updatedAt ?? 0;
@@ -84,42 +84,6 @@ export default function ExpenseEditModal({
       setLastSyncedAt(incomingUpdatedAt);
     }
   }, [expense, isDirty, lastSyncedAt, values.id]);
-
-  const trimmedFields = useMemo(
-    () => ({
-      projectId: values.projectId?.trim() ?? "",
-      category: values.category?.trim() ?? "",
-      subCategory: values.subCategory?.trim() ?? "",
-    }),
-    [values.projectId, values.category, values.subCategory]
-  );
-
-  const validationHints = useMemo(() => {
-    const missing: string[] = [];
-
-    if (!trimmedFields.projectId) {
-      missing.push("Project");
-    }
-    if (!trimmedFields.category) {
-      missing.push("Category");
-    }
-    if (!trimmedFields.subCategory) {
-      missing.push("Sub-category");
-    }
-
-    if (!Number.isFinite(values.amount) || values.amount < 0) {
-      missing.push("Amount");
-    }
-
-    return {
-      missing,
-      isValid: missing.length === 0,
-    };
-  }, [trimmedFields, values.amount]);
-
-  useEffect(() => {
-    setValues(expense);
-  }, [expense]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -184,23 +148,23 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
-      if (!validationHints.isValid) {
+      if (!memoizedValidationHints.isValid) {
         throw new Error(
-          `Please complete the following before saving: ${validationHints.missing.join(", ")}`
+          `Please complete the following before saving: ${memoizedValidationHints.missing.join(", ")}`
         );
       }
 
-      const trimmedProjectId = trimmedFields.projectId;
+      const trimmedProjectId = memoizedTrimmedFields.projectId;
       if (!trimmedProjectId) {
         throw new Error("Project is required.");
       }
 
-      const trimmedCategory = trimmedFields.category;
+      const trimmedCategory = memoizedTrimmedFields.category;
       if (!trimmedCategory) {
         throw new Error("Category is required.");
       }
 
-      const trimmedSubCategory = trimmedFields.subCategory;
+      const trimmedSubCategory = memoizedTrimmedFields.subCategory;
       if (!trimmedSubCategory) {
         throw new Error("Sub-category is required.");
       }
@@ -360,9 +324,9 @@ export default function ExpenseEditModal({
           </div>
         </div>
 
-        {!validationHints.isValid && (
+        {!memoizedValidationHints.isValid && (
           <div className="text-sm text-amber-600 mt-4">
-            Complete required fields: {validationHints.missing.join(", ")}
+            Complete required fields: {memoizedValidationHints.missing.join(", ")}
           </div>
         )}
 
@@ -377,7 +341,7 @@ export default function ExpenseEditModal({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={saving || !validationHints.isValid}
+            disabled={saving || !memoizedValidationHints.isValid}
             className="bg-gray-900 text-white hover:bg-black"
           >
             {saving ? "Saving…" : "Save Changes"}
