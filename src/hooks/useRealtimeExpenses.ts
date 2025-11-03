@@ -11,6 +11,7 @@ import {
 import { db } from "@/core/firebase";
 import type { Expense } from "@/domain/models";
 import { mapExpense } from "@/domain/mapping";
+import { compareExpensesByPaymentDate } from "@/utils/expenses";
 
 /**
  * useRealtimeExpenses()
@@ -31,7 +32,12 @@ export function useRealtimeExpenses(yyyyMM: string): {
     if (!yyyyMM) return;
 
     const ref = collection(db, "expenses", yyyyMM, "items");
-    const q = query(ref, orderBy("createdAt", "asc"));
+    const q = query(
+      ref,
+      orderBy("datePaid", "asc"),
+      orderBy("invoiceDate", "asc"),
+      orderBy("createdAt", "asc")
+    );
 
     // Subscribe to Firestore changes
     const unsub = onSnapshot(
@@ -53,7 +59,9 @@ export function useRealtimeExpenses(yyyyMM: string): {
             })
             .filter((x): x is Expense => x !== null);
 
-          setData(parsed);
+          const sorted = parsed.slice().sort(compareExpensesByPaymentDate);
+
+          setData(sorted);
           setError(null);
         } catch (err) {
           console.error("[useRealtimeExpenses] Unexpected error:", err);

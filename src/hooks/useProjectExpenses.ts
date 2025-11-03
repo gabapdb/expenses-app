@@ -1,10 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { onSnapshot, query, collection, orderBy, where, FirestoreError } from "firebase/firestore";
+import {
+  onSnapshot,
+  query,
+  collection,
+  orderBy,
+  where,
+  FirestoreError,
+} from "firebase/firestore";
 import { db } from "@/core/firebase";
 import type { Expense } from "@/domain/models";
 import { mapExpense } from "@/domain/mapping";
+import { compareExpensesByPaymentDate } from "@/utils/expenses";
 
 /**
  * useProjectExpenses()
@@ -28,7 +36,13 @@ export function useProjectExpenses(
     if (!projectId || !yyyyMM) return;
 
     const ref = collection(db, "expenses", yyyyMM, "items");
-    const q = query(ref, where("projectId", "==", projectId), orderBy("createdAt", "asc"));
+    const q = query(
+      ref,
+      where("projectId", "==", projectId),
+      orderBy("datePaid", "asc"),
+      orderBy("invoiceDate", "asc"),
+      orderBy("createdAt", "asc")
+    );
 
     const unsub = onSnapshot(
       q,
@@ -46,7 +60,9 @@ export function useProjectExpenses(
             })
             .filter((x): x is Expense => x !== null);
 
-          setData(parsed);
+          const sorted = parsed.slice().sort(compareExpensesByPaymentDate);
+
+          setData(sorted);
           setError(null);
         } catch (err) {
           console.error("[useProjectExpenses] Unexpected error:", err);

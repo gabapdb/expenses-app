@@ -27,6 +27,63 @@ export default function ExpenseEditModal({
   const [values, setValues] = useState<Expense>(expense);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(expense.updatedAt ?? 0);
+
+  const trimmedFields = useMemo(
+    () => ({
+      projectId: values.projectId?.trim() ?? "",
+      category: values.category?.trim() ?? "",
+      subCategory: values.subCategory?.trim() ?? "",
+    }),
+    [values.projectId, values.category, values.subCategory]
+  );
+
+  const validationHints = useMemo(() => {
+    const missing: string[] = [];
+
+    if (!trimmedFields.projectId) {
+      missing.push("Project");
+    }
+    if (!trimmedFields.category) {
+      missing.push("Category");
+    }
+    if (!trimmedFields.subCategory) {
+      missing.push("Sub-category");
+    }
+
+    if (!Number.isFinite(values.amount) || values.amount < 0) {
+      missing.push("Amount");
+    }
+
+    return {
+      missing,
+      isValid: missing.length === 0,
+    };
+  }, [trimmedFields, values.amount]);
+
+  useEffect(() => {
+    const incomingUpdatedAt = expense.updatedAt ?? 0;
+
+    if (expense.id !== values.id) {
+      setValues(expense);
+      setIsDirty(false);
+      setLastSyncedAt(incomingUpdatedAt);
+      return;
+    }
+
+    if (!isDirty) {
+      setValues(expense);
+      setLastSyncedAt(incomingUpdatedAt);
+      return;
+    }
+
+    if (incomingUpdatedAt > lastSyncedAt) {
+      setValues(expense);
+      setIsDirty(false);
+      setLastSyncedAt(incomingUpdatedAt);
+    }
+  }, [expense, isDirty, lastSyncedAt, values.id]);
 
   const trimmedFields = useMemo(
     () => ({
@@ -74,24 +131,48 @@ export default function ExpenseEditModal({
 
     setValues((prev) => {
       const next = { ...prev };
+      let changed = false;
 
       switch (name) {
         case "paid":
-          next.paid = isCheckbox
-            ? (target as HTMLInputElement).checked
-            : Boolean(value);
+          {
+            const nextPaid = isCheckbox
+              ? (target as HTMLInputElement).checked
+              : Boolean(value);
+            if (nextPaid !== prev.paid) {
+              next.paid = nextPaid;
+              changed = true;
+            }
+          }
           break;
         case "amount": {
           if (typeof value === "string" && value.trim() === "") {
-            next.amount = 0;
+            if (prev.amount !== 0) {
+              next.amount = 0;
+              changed = true;
+            }
           } else {
             const numeric = Number(value);
-            next.amount = Number.isFinite(numeric) ? numeric : prev.amount;
+            if (Number.isFinite(numeric) && numeric !== prev.amount) {
+              next.amount = numeric;
+              changed = true;
+            }
           }
           break;
         }
         default:
-          (next as Record<string, unknown>)[name] = value;
+          if ((next as Record<string, unknown>)[name] !== value) {
+            (next as Record<string, unknown>)[name] = value;
+            changed = true;
+          }
+      }
+
+      if (!changed) {
+        return prev;
+      }
+
+      if (!isDirty) {
+        setIsDirty(true);
       }
 
       return next;
@@ -145,6 +226,28 @@ export default function ExpenseEditModal({
       // ✅ Validate shape via Zod
       const parsed = ExpenseSchema.parse(normalized);
 
+      const fieldsToCompare: (keyof Expense)[] = [
+        "projectId",
+        "yyyyMM",
+        "payee",
+        "category",
+        "subCategory",
+        "details",
+        "modeOfPayment",
+        "invoiceDate",
+        "datePaid",
+        "amount",
+        "paid",
+      ];
+
+      const hasChanges = fieldsToCompare.some((key) => parsed[key] !== expense[key]);
+
+      if (!hasChanges && parsed.yyyyMM === yyyyMM) {
+        onSaved?.(expense);
+        onClose();
+        return;
+      }
+
       const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
 
       // ✅ Save to Firestore (move document when month changes)
@@ -159,6 +262,8 @@ export default function ExpenseEditModal({
       }
 
       onSaved?.(parsed);
+      setIsDirty(false);
+      setLastSyncedAt(parsed.updatedAt ?? Date.now());
       onClose();
     } catch (err) {
       if (err instanceof z.ZodError) {
