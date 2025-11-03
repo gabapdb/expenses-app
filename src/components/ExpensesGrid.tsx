@@ -13,6 +13,8 @@ import Checkbox from "@/components/ui/Checkbox";
 import { peso } from "@/utils/format";
 import { uuid } from "@/utils/id";
 import { z } from "zod";
+import ExpenseEditModal from "@/components/ExpenseEditModal";
+import { isoDateToYYYYMM } from "@/utils/time";
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -74,15 +76,21 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   /* ---------------------------------------------------------------------- */
   /* Save handler                                                           */
   /* ---------------------------------------------------------------------- */
   async function handleSave() {
     try {
+      const targetMonth =
+        isoDateToYYYYMM(draft.datePaid) ??
+        isoDateToYYYYMM(draft.invoiceDate) ??
+        yyyyMM;
+
       const data = expenseSchema.parse({
         id: draft.id ?? crypto.randomUUID(),
-        yyyyMM,
+        yyyyMM: targetMonth,
         projectId: draft.projectId,
         invoiceDate: draft.invoiceDate,
         datePaid: draft.datePaid,
@@ -98,7 +106,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
       });
 
       setSaving(true);
-      await addExpense(yyyyMM, data as Expense);
+      await addExpense(targetMonth, data as Expense);
 
       // reset after save
       setDraft({
@@ -348,6 +356,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
                   <th className="p-2">Details</th>
                   <th className="p-2 text-right">Amount</th>
                   <th className="p-2 text-center">Paid</th>
+                  <th className="p-2 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -368,6 +377,15 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
                         onChange={() => togglePaid(e.id, !!e.paid)}
                       />
                     </td>
+                    <td className="p-2 text-center">
+                      <Button
+                        type="button"
+                        className="bg-gray-100 text-gray-800 hover:bg-gray-200 px-2 py-1"
+                        onClick={() => setEditingExpense(e)}
+                      >
+                        Edit
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -378,6 +396,15 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
 
       {error && (
         <div className="text-sm text-red-600 font-medium">{error}</div>
+      )}
+
+      {editingExpense && (
+        <ExpenseEditModal
+          yyyyMM={editingExpense.yyyyMM ?? yyyyMM}
+          expense={editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onSaved={() => setEditingExpense(null)}
+        />
       )}
     </div>
   );

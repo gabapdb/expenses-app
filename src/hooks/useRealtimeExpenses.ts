@@ -9,7 +9,8 @@ import {
   FirestoreError,
 } from "firebase/firestore";
 import { db } from "@/core/firebase";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import type { Expense } from "@/domain/models";
+import { mapExpense } from "@/domain/mapping";
 
 /**
  * useRealtimeExpenses()
@@ -41,7 +42,7 @@ export function useRealtimeExpenses(yyyyMM: string): {
             .map((doc) => {
               const raw = doc.data();
               try {
-                return ExpenseSchema.parse(raw);
+                return mapExpense(doc.id, raw);
               } catch (err) {
                 console.error(
                   `[useRealtimeExpenses] Invalid expense document (${doc.id}):`,

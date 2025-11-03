@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { z } from "zod";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
@@ -9,6 +9,7 @@ import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { isoDateToYYYYMM } from "@/utils/time";
 
 interface ExpenseEditModalProps {
   yyyyMM: string;
@@ -49,22 +50,51 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
+      const trimmedProjectId = values.projectId?.trim();
+      if (!trimmedProjectId) {
+        throw new Error("Project is required.");
+      }
+
+      const trimmedCategory = values.category?.trim() ?? "";
+      if (!trimmedCategory) {
+        throw new Error("Category is required.");
+      }
+
+      const trimmedSubCategory = values.subCategory?.trim() ?? "";
+      if (!trimmedSubCategory) {
+        throw new Error("Sub-category is required.");
+      }
+
       // ✅ Normalize values before Zod validation
+      const targetMonth =
+        isoDateToYYYYMM(values.datePaid) ??
+        isoDateToYYYYMM(values.invoiceDate) ??
+        yyyyMM;
+
       const normalized = {
         ...values,
-        projectId: values.projectId?.trim() || "unassigned",
-        yyyyMM, // <-- ensure it's always included
+        projectId: trimmedProjectId,
+        category: trimmedCategory,
+        subCategory: trimmedSubCategory,
+        yyyyMM: targetMonth,
         amount: Number(values.amount) || 0,
         paid: Boolean(values.paid),
         updatedAt: Date.now(),
+        createdAt: values.createdAt ?? Date.now(),
       };
 
       // ✅ Validate shape via Zod
       const parsed = ExpenseSchema.parse(normalized);
 
-      // ✅ Save to Firestore
-      const ref = doc(db, "expenses", yyyyMM, "items", parsed.id);
-      await setDoc(ref, parsed, { merge: true });
+      const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
+
+      // ✅ Save to Firestore (move document when month changes)
+      await setDoc(destinationRef, parsed, { merge: true });
+
+      if (parsed.yyyyMM !== yyyyMM) {
+        const sourceRef = doc(db, "expenses", yyyyMM, "items", parsed.id);
+        await deleteDoc(sourceRef);
+      }
 
       onSaved?.(parsed);
       onClose();
