@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { db } from "@/core/firebase";
 import { collectionGroup, getDocs, query, where } from "firebase/firestore";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import type { Expense } from "@/domain/models";
+import { mapExpense } from "@/domain/mapping";
 import { z } from "zod";
 
 interface BreakdownRow {
@@ -40,7 +41,7 @@ export function useProjectExpenseBreakdown(projectId: string): ExpenseBreakdownS
       const snapshot = await getDocs(q);
 
       const expenses: Expense[] = snapshot.docs.map((docSnap) =>
-        ExpenseSchema.parse({ id: docSnap.id, ...docSnap.data() })
+        mapExpense(docSnap.id, docSnap.data())
       );
 
       // Group by category + subcategory
@@ -51,10 +52,21 @@ export function useProjectExpenseBreakdown(projectId: string): ExpenseBreakdownS
       }
 
       // Convert to array
-      const breakdown: BreakdownRow[] = Array.from(map.entries()).map(([key, total]) => {
-        const [category, subCategory] = key.split("::");
-        return { category, subCategory, total };
-      });
+      const breakdown: BreakdownRow[] = Array.from(map.entries())
+        .map(([key, total]) => {
+          const [category, subCategory] = key.split("::");
+          return { category, subCategory, total };
+        })
+        .sort((a, b) => {
+          if (b.total !== a.total) {
+            return b.total - a.total;
+          }
+          const categoryCompare = a.category.localeCompare(b.category);
+          if (categoryCompare !== 0) {
+            return categoryCompare;
+          }
+          return a.subCategory.localeCompare(b.subCategory);
+        });
 
       const totalAmount = breakdown.reduce((sum, b) => sum + b.total, 0);
 
