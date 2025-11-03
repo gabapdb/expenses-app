@@ -85,6 +85,42 @@ export default function ExpenseEditModal({
     }
   }, [expense, isDirty, lastSyncedAt, values.id]);
 
+  const trimmedFields = useMemo(
+    () => ({
+      projectId: values.projectId?.trim() ?? "",
+      category: values.category?.trim() ?? "",
+      subCategory: values.subCategory?.trim() ?? "",
+    }),
+    [values.projectId, values.category, values.subCategory]
+  );
+
+  const validationHints = useMemo(() => {
+    const missing: string[] = [];
+
+    if (!trimmedFields.projectId) {
+      missing.push("Project");
+    }
+    if (!trimmedFields.category) {
+      missing.push("Category");
+    }
+    if (!trimmedFields.subCategory) {
+      missing.push("Sub-category");
+    }
+
+    if (!Number.isFinite(values.amount) || values.amount < 0) {
+      missing.push("Amount");
+    }
+
+    return {
+      missing,
+      isValid: missing.length === 0,
+    };
+  }, [trimmedFields, values.amount]);
+
+  useEffect(() => {
+    setValues(expense);
+  }, [expense]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
