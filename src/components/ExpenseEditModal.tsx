@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { doc, setDoc, deleteDoc } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { doc, setDoc, writeBatch } from "firebase/firestore";
 import { z } from "zod";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
@@ -28,6 +28,38 @@ export default function ExpenseEditModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const trimmedFields = useMemo(
+    () => ({
+      projectId: values.projectId?.trim() ?? "",
+      category: values.category?.trim() ?? "",
+      subCategory: values.subCategory?.trim() ?? "",
+    }),
+    [values.projectId, values.category, values.subCategory]
+  );
+
+  const validationHints = useMemo(() => {
+    const missing: string[] = [];
+
+    if (!trimmedFields.projectId) {
+      missing.push("Project");
+    }
+    if (!trimmedFields.category) {
+      missing.push("Category");
+    }
+    if (!trimmedFields.subCategory) {
+      missing.push("Sub-category");
+    }
+
+    if (!Number.isFinite(values.amount) || values.amount < 0) {
+      missing.push("Amount");
+    }
+
+    return {
+      missing,
+      isValid: missing.length === 0,
+    };
+  }, [trimmedFields, values.amount]);
+
   useEffect(() => {
     setValues(expense);
   }, [expense]);
@@ -39,14 +71,31 @@ export default function ExpenseEditModal({
     const { name, value } = target;
     const isCheckbox =
       target instanceof HTMLInputElement && target.type === "checkbox";
-    const newValue = isCheckbox
-      ? (target as HTMLInputElement).checked
-      : value;
 
-    setValues((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+    setValues((prev) => {
+      const next = { ...prev };
+
+      switch (name) {
+        case "paid":
+          next.paid = isCheckbox
+            ? (target as HTMLInputElement).checked
+            : Boolean(value);
+          break;
+        case "amount": {
+          if (typeof value === "string" && value.trim() === "") {
+            next.amount = 0;
+          } else {
+            const numeric = Number(value);
+            next.amount = Number.isFinite(numeric) ? numeric : prev.amount;
+          }
+          break;
+        }
+        default:
+          (next as Record<string, unknown>)[name] = value;
+      }
+
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -54,17 +103,23 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
-      const trimmedProjectId = values.projectId?.trim();
+      if (!validationHints.isValid) {
+        throw new Error(
+          `Please complete the following before saving: ${validationHints.missing.join(", ")}`
+        );
+      }
+
+      const trimmedProjectId = trimmedFields.projectId;
       if (!trimmedProjectId) {
         throw new Error("Project is required.");
       }
 
-      const trimmedCategory = values.category?.trim() ?? "";
+      const trimmedCategory = trimmedFields.category;
       if (!trimmedCategory) {
         throw new Error("Category is required.");
       }
 
-      const trimmedSubCategory = values.subCategory?.trim() ?? "";
+      const trimmedSubCategory = trimmedFields.subCategory;
       if (!trimmedSubCategory) {
         throw new Error("Sub-category is required.");
       }
@@ -93,11 +148,14 @@ export default function ExpenseEditModal({
       const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
 
       // ✅ Save to Firestore (move document when month changes)
-      await setDoc(destinationRef, parsed, { merge: true });
-
-      if (parsed.yyyyMM !== yyyyMM) {
+      if (parsed.yyyyMM === yyyyMM) {
+        await setDoc(destinationRef, parsed, { merge: true });
+      } else {
         const sourceRef = doc(db, "expenses", yyyyMM, "items", parsed.id);
-        await deleteDoc(sourceRef);
+        const batch = writeBatch(db);
+        batch.set(destinationRef, parsed, { merge: true });
+        batch.delete(sourceRef);
+        await batch.commit();
       }
 
       onSaved?.(parsed);
@@ -197,6 +255,12 @@ export default function ExpenseEditModal({
           </div>
         </div>
 
+        {!validationHints.isValid && (
+          <div className="text-sm text-amber-600 mt-4">
+            Complete required fields: {validationHints.missing.join(", ")}
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 mt-6">
           <Button
             type="button"
@@ -208,7 +272,7 @@ export default function ExpenseEditModal({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !validationHints.isValid}
             className="bg-gray-900 text-white hover:bg-black"
           >
             {saving ? "Saving…" : "Save Changes"}
