@@ -1,6 +1,7 @@
 import "@/styles/design-tokens.css";
 import "@/styles/globals.css";
 import React from "react";
+import AuthButtons from "@/components/AuthButtons";
 
 export const metadata = {
   title: "Expenses App",
@@ -15,12 +16,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50 text-gray-900">
-        <div className="mx-auto max-w-6xl p-6 space-y-6">
-          <header className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Expenses</h1>
-          </header>
-          {children}
-        </div>
+        {/* ✅ Moved inside <body> */}
+        <header className="flex justify-between items-center p-4 border-b border-gray-200">
+          <h1 className="font-semibold text-lg">Expenses App</h1>
+          <AuthButtons />
+        </header>
+
+        <main className="mx-auto max-w-6xl p-6 space-y-6">{children}</main>
       </body>
     </html>
   );

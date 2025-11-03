@@ -1,33 +1,85 @@
-import { collection, doc, getDocs, query, setDoc, updateDoc, where, type DocumentData } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  getFirestore,
+} from "firebase/firestore";
 import { db } from "@/core/firebase";
-import { mapExpense } from "@/domain/mapping";
-import type { Expense } from "@/domain/models";
+import { ExpenseSchema, type Expense } from "@/domain/models";
 
+/**
+ * Add a new expense document.
+ * - Validates with Zod before writing.
+ * - Uses Firestore path: expenses/{yyyyMM}/items/{expense.id}
+ */
+export async function addExpense(yyyyMM: string, data: unknown): Promise<void> {
+  const parsed = ExpenseSchema.parse(data); // runtime validation
 
-const monthCol = (yyyyMM: string) => collection(db, "expenses", yyyyMM, "items");
-export async function listMonthlyExpenses(yyyyMM: string): Promise<Expense[]> {
-const snap = await getDocs(monthCol(yyyyMM));
-return snap.docs.map(d => mapExpense(d.id, d.data() as DocumentData));
+  const ref = doc(db, "expenses", yyyyMM, "items", parsed.id);
+  await setDoc(ref, parsed, { merge: true });
 }
-export async function addExpense(yyyyMM: string, e: Expense): Promise<void> {
-const ref = doc(db, "expenses", yyyyMM, "items", e.id);
-await setDoc(ref, e);
-}
+
+/**
+ * Update an expense's paid status and optionally patch other fields.
+ * - Also updates `updatedAt` timestamp.
+ * - Automatically coerces types and validates shape.
+ */
 export async function updateExpensePaid(
-yyyyMM: string,
-expenseId: string,
-paid: boolean,
-patch: Partial<Expense>
+  yyyyMM: string,
+  expenseId: string,
+  paid: boolean,
+  patch: Partial<Expense>
 ): Promise<void> {
-const ref = doc(db, "expenses", yyyyMM, "items", expenseId);
-await updateDoc(ref, { paid, ...patch, updatedAt: Date.now() });
+  const ref = doc(db, "expenses", yyyyMM, "items", expenseId);
+  const normalized = {
+    paid,
+    ...patch,
+    updatedAt: Date.now(),
+  };
+
+  // validate only allowed subset (partial ok)
+  const parsed = ExpenseSchema.partial().parse(normalized);
+  await updateDoc(ref, parsed);
 }
-export async function mirrorPaidToProject(yyyyMM: string, expense: Expense): Promise<void> {
-const ref = doc(db, "projects", expense.projectId, "paidExpenses", expense.id);
-await setDoc(ref, { ...expense, yyyyMM });
+
+/**
+ * Mirror a paid expense into its corresponding project summary.
+ * - Optional helper for analytics / dashboard totals.
+ * - Creates/updates a document in projects/{projectId}/paidExpenses/{expense.id}
+ */
+export async function mirrorPaidToProject(
+  yyyyMM: string,
+  expense: Expense
+): Promise<void> {
+  if (!expense.projectId || expense.projectId === "unassigned") return;
+
+  const projectRef = doc(
+    db,
+    "projects",
+    expense.projectId,
+    "paidExpenses",
+    expense.id
+  );
+
+  const payload = {
+    id: expense.id,
+    yyyyMM,
+    payee: expense.payee,
+    category: expense.category,
+    subCategory: expense.subCategory ?? "",
+    amount: Number(expense.amount) || 0,
+    datePaid: expense.datePaid ?? "",
+    updatedAt: Date.now(),
+  };
+
+  await setDoc(projectRef, payload, { merge: true });
 }
-export async function listMonthlyExpensesByProject(yyyyMM: string, projectId: string): Promise<Expense[]> {
-const q = query(monthCol(yyyyMM), where("projectId", "==", projectId));
-const snap = await getDocs(q);
-return snap.docs.map(d => mapExpense(d.id, d.data() as DocumentData));
+
+/**
+ * Utility: Get a reference to the collection for a given month.
+ * (Useful for list or query hooks)
+ */
+export function expensesCollectionRef(yyyyMM: string) {
+  return collection(db, "expenses", yyyyMM, "items");
 }

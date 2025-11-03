@@ -1,55 +1,83 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import Card from "@/components/ui/Card";
-import CategoryBreakdown from "@/components/CategoryBreakdown";
-import TotalsBar from "@/components/TotalsBar";
 import { allMonths, expensesForMonth } from "@/data/summary.repo";
-import { expensesByCategory } from "@/domain/compute";
+import MonthlyTrendChart from "@/components/charts/MonthlyTrendChart";
+import CategoryPieChart from "@/components/charts/CategoryPieChart";
+import TotalsBar from "@/components/TotalsBar";
+import CategoryBreakdown from "@/components/CategoryBreakdown";
+import { totalPerMonth, totalPerCategory } from "@/utils/analytics";
+import Card from "@/components/ui/Card";
 import { peso } from "@/utils/format";
+import type { Expense } from "@/domain/models";
+
+// Safe state shape for the month-wise map
+interface MonthExpenseMap {
+  [month: string]: Expense[];
+}
 
 export default function SummaryPage() {
   const [months, setMonths] = useState<string[]>([]);
   const [selected, setSelected] = useState<string>("");
-  const [spent, setSpent] = useState<number>(0);
-  const [byCat, setByCat] = useState<{ category: string; total: number }[]>([]);
+  const [dataByMonth, setDataByMonth] = useState<MonthExpenseMap>({});
+  const [expenses, setExpenses] = useState<Expense[]>([]);
 
+  // Load all month IDs once
   useEffect(() => {
-    allMonths().then((ms) => {
-      setMonths(ms);
-      if (ms.length > 0) setSelected(ms[ms.length - 1]);
-    });
+    (async () => {
+      const m = await allMonths();
+      setMonths(m);
+      if (m.length) setSelected(m[m.length - 1]);
+    })();
   }, []);
 
+  // Fetch expenses for the selected month
   useEffect(() => {
-    if (!selected) return;
     (async () => {
+      if (!selected) return;
       const ex = await expensesForMonth(selected);
-      setSpent(ex.reduce((s, e) => s + e.amount, 0));
-      setByCat(expensesByCategory(ex));
+      setExpenses(ex);
+      setDataByMonth((prev) => ({ ...prev, [selected]: ex }));
     })();
   }, [selected]);
 
+  const monthlyTotals = totalPerMonth(dataByMonth);
+  const categoryTotals = totalPerCategory(expenses);
+  const totalSpent = expenses.reduce((sum, e) => sum + e.amount, 0);
+
   return (
-    <div className="space-y-4">
+    <div className="p-6 space-y-6">
+      <h1 className="text-lg font-semibold">Summary</h1>
+
       <Card>
-        <div className="flex items-center gap-3">
-          <div className="text-sm">Month</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-sm text-gray-700">Month:</label>
           <select
-            className="rounded-lg border px-2 py-1 text-sm"
+            className="border rounded px-2 py-1 text-sm"
             value={selected}
             onChange={(e) => setSelected(e.target.value)}
           >
             {months.map((m) => (
-              <option key={m} value={m}>{m}</option>
+              <option key={m} value={m}>
+                {m}
+              </option>
             ))}
           </select>
-          <div className="ml-auto text-sm">
-            Spent: <span className="font-semibold">{peso(spent)}</span>
-          </div>
         </div>
       </Card>
-      <CategoryBreakdown data={byCat} />
-      <TotalsBar totalProjects={0} totalSpent={spent} perCategory={byCat} />
+
+      <TotalsBar
+        totalProjects={1}
+        totalSpent={totalSpent}
+        perCategory={categoryTotals}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <MonthlyTrendChart data={monthlyTotals} />
+        <CategoryPieChart data={categoryTotals} />
+      </div>
+
+      <CategoryBreakdown data={categoryTotals} />
     </div>
   );
 }

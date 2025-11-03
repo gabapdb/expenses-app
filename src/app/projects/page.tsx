@@ -1,38 +1,37 @@
 "use client";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
+
+import { useRouter } from "next/navigation";
 import { useProjects } from "@/hooks/useProjects";
-import { peso } from "@/utils/format";
+import { Folder } from "lucide-react";
 
 export default function ProjectsPage() {
-  const items = useProjects();
+  const { push } = useRouter();
+  const { data: projects, loading, error } = useProjects(); // ✅ destructure properly
+
+  if (loading) return <div className="p-6 text-gray-500">Loading projects…</div>;
+  if (error) return <div className="p-6 text-red-500 text-sm">{error}</div>;
+  if (!projects || projects.length === 0)
+    return <div className="p-6 text-gray-500">No projects yet.</div>;
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Projects</h2>
-          <Button onClick={() => (window.location.href = "/summary")}>View Summary</Button>
-        </div>
+    <main className="p-6 space-y-6">
+      <h1 className="text-xl font-semibold">Projects</h1>
 
-        <div className="divide-y">
-          {items.map((p) => (
-            <div key={p.id} className="py-3 flex items-center justify-between">
-              <div>
-                <div className="font-medium">{p.name}</div>
-                <div className="text-xs text-gray-600">{p.city} · {p.team}</div>
-              </div>
-              <div className="text-sm text-gray-700">{peso(p.projectCost)}</div>
-              <a
-                href={`/projects/${p.id}`}
-                className="text-blue-600 text-sm hover:underline"
-              >
-                Open →
-              </a>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {projects.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center gap-3 border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition"
+            onClick={() => push(`/projects/${p.id}`)}
+          >
+            <Folder className="w-8 h-8 text-gray-600" />
+            <div className="flex flex-col">
+              <span className="font-medium">{p.name}</span>
+              <span className="text-xs text-gray-500">{p.developer ?? "—"}</span>
             </div>
-          ))}
-        </div>
-      </Card>
-    </div>
+          </div>
+        ))}
+      </div>
+    </main>
   );
 }

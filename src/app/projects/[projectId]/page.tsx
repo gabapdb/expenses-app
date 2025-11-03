@@ -1,26 +1,32 @@
 "use client";
+
 import { useParams } from "next/navigation";
 import { useProject } from "@/hooks/useProjects";
-import ProjectInfoCard from "@/components/ProjectInfoCard";
+import ProjectInfoSection from "./ProjectInfoSection";
+import MonthlyExpensesSection from "./MonthlyExpensesSection";
+import BreakdownOfCostsSection from "./BreakdownOfCostsSection";
 
-export default function ProjectPage() {
+export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const project = useProject(projectId);
+  const { data: project, loading, error } = useProject(projectId); // ✅ FIX
 
-  if (!project) return <div className="p-4 text-gray-500">Loading project...</div>;
+  if (loading) return <div className="p-6 text-gray-500">Loading project...</div>;
+  if (error) return <div className="p-6 text-red-500 text-sm">{error}</div>;
+  if (!project) return <div className="p-6 text-gray-500">No project found.</div>;
 
   return (
-    <div className="space-y-4">
-      <ProjectInfoCard
-        name={project.name}
-        team={project.team}
-        projectCost={project.projectCost}
-        developer={project.developer}
-        city={project.city}
-        startDate={project.startDate}
-        endDate={project.endDate}
-        projectSize={project.projectSize}
-      />
-    </div>
+    <main className="p-6 space-y-8">
+      {/* Page Title */}
+      <h1 className="text-xl font-semibold">{project.name}</h1>
+
+      {/* Section 1: Project Info */}
+      <ProjectInfoSection project={project} />
+
+      {/* Section 2: Monthly Expenses */}
+      <MonthlyExpensesSection projectId={project.id} />
+
+      {/* Section 3: Breakdown of Costs */}
+      <BreakdownOfCostsSection projectId={project.id} />
+    </main>
   );
 }
