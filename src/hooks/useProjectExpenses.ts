@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { onSnapshot, query, collection, orderBy, where, FirestoreError } from "firebase/firestore";
 import { db } from "@/core/firebase";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import type { Expense } from "@/domain/models";
+import { mapExpense } from "@/domain/mapping";
 
 /**
  * useProjectExpenses()
@@ -37,7 +38,7 @@ export function useProjectExpenses(
             .map((doc) => {
               const raw = doc.data();
               try {
-                return ExpenseSchema.parse(raw);
+                return mapExpense(doc.id, raw);
               } catch (err) {
                 console.error(`[useProjectExpenses] Invalid expense (${doc.id}):`, err);
                 return null;

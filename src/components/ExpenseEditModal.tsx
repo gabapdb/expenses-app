@@ -49,10 +49,27 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
+      const trimmedProjectId = values.projectId?.trim();
+      if (!trimmedProjectId) {
+        throw new Error("Project is required.");
+      }
+
+      const trimmedCategory = values.category?.trim() ?? "";
+      if (!trimmedCategory) {
+        throw new Error("Category is required.");
+      }
+
+      const trimmedSubCategory = values.subCategory?.trim() ?? "";
+      if (!trimmedSubCategory) {
+        throw new Error("Sub-category is required.");
+      }
+
       // ✅ Normalize values before Zod validation
       const normalized = {
         ...values,
-        projectId: values.projectId?.trim() || "unassigned",
+        projectId: trimmedProjectId,
+        category: trimmedCategory,
+        subCategory: trimmedSubCategory,
         yyyyMM, // <-- ensure it's always included
         amount: Number(values.amount) || 0,
         paid: Boolean(values.paid),
