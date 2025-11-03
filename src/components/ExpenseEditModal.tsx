@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { doc, setDoc, deleteDoc } from "firebase/firestore";
 import { z } from "zod";
 import { db } from "@/core/firebase";
@@ -27,6 +27,10 @@ export default function ExpenseEditModal({
   const [values, setValues] = useState<Expense>(expense);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setValues(expense);
+  }, [expense]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

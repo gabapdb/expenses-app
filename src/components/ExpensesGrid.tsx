@@ -167,9 +167,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
   /* ---------------------------------------------------------------------- */
   async function togglePaid(id: string, current: boolean) {
     try {
-      await updateExpensePaid(yyyyMM, id, !current, {
-        updatedAt: Date.now(),
-      });
+      await updateExpensePaid(yyyyMM, id, !current, {});
     } catch (err) {
       console.error("Failed to toggle paid:", err);
     }
