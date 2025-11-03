@@ -49,10 +49,15 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
+      const trimmedProjectId = values.projectId?.trim();
+      if (!trimmedProjectId) {
+        throw new Error("Project is required.");
+      }
+
       // ✅ Normalize values before Zod validation
       const normalized = {
         ...values,
-        projectId: values.projectId?.trim() || "unassigned",
+        projectId: trimmedProjectId,
         yyyyMM, // <-- ensure it's always included
         amount: Number(values.amount) || 0,
         paid: Boolean(values.paid),
