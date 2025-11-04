@@ -14,7 +14,8 @@ interface Props {
 export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
   return (
     <aside
-      className={`sidebar ${expanded ? "expanded" : "collapsed"}`}
+      className="sidebar"
+      data-expanded={expanded ? "true" : "false"}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >

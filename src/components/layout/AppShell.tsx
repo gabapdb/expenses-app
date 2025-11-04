@@ -21,7 +21,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Expandable Panel */}
-      <ExpandablePanel expanded={expanded} />
+      <ExpandablePanel expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
 
       {/* Main Content */}
       <main className="relative flex-1 overflow-y-auto">
