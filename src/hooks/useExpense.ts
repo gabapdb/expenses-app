@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import type { Expense } from "@/domain/models";
+import { mapExpense } from "@/domain/mapping";
 import { z } from "zod";
 
 interface ExpenseState {
@@ -36,7 +37,7 @@ export function useExpense(yyyyMM: string, expenseId: string): ExpenseState {
           return;
         }
 
-        const parsed = ExpenseSchema.parse({ id: snap.id, ...snap.data() });
+        const parsed = mapExpense(snap.id, snap.data());
         if (active) setData(parsed);
       } catch (err) {
         if (err instanceof z.ZodError) {
