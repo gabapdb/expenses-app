@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { collectionGroup, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/core/firebase";
-import { mapExpense } from "@/domain/mapping";
+import { useMemo } from "react";
+
 import type { Expense } from "@/domain/models";
 import { allMonths, getMonthName, getPaymentTimestamp } from "@/utils/expenses";
+import { useProjectExpensesCollection } from "./useProjectExpensesCollection";
 
 interface AggregatedExpenseData {
   byMonth: Record<string, Record<string, number>>;
@@ -26,58 +25,11 @@ export function useProjectExpensesByYear(
   projectId: string,
   requestedYear: number
 ): AggregatedExpenseData {
-  const [allExpenses, setAllExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!projectId) {
-      setAllExpenses([]);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function fetchExpenses() {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const q = query(collectionGroup(db, "items"), where("projectId", "==", projectId));
-        const snapshot = await getDocs(q);
-
-        if (cancelled) return;
-
-        const expenses = snapshot.docs.map((docSnap) =>
-          mapExpense(docSnap.id, docSnap.data())
-        );
-
-        setAllExpenses(expenses);
-      } catch (err) {
-        if (cancelled) return;
-
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Failed to load expenses");
-        }
-
-        setAllExpenses([]);
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchExpenses();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId]);
+  const {
+    data: allExpenses,
+    loading,
+    error,
+  } = useProjectExpensesCollection(projectId);
 
   const aggregates = useMemo(() => {
     const expensesByYear = new Map<number, Expense[]>();
