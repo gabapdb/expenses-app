@@ -29,7 +29,7 @@ export const ExpenseSchema = z.object({
 
   // 🔹 Payment info
   modeOfPayment: z.string().default(""),
-  invoiceDate: z.string().default(""),
+  invoiceDate: z.string().min(1, "Invoice date is required"),
   datePaid: z.string().default(""),
 
   // 🔹 Financials
