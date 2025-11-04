@@ -32,15 +32,27 @@ export async function updateExpensePaid(
   patch: Partial<Expense>
 ): Promise<void> {
   const ref = doc(db, "expenses", yyyyMM, "items", expenseId);
+
+  // strip out undefined values so we don't accidentally write them
+  const cleanedPatch = Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined)
+  ) as Partial<Expense>;
+
   const normalized = {
     paid,
-    ...patch,
+    ...cleanedPatch,
     updatedAt: Date.now(),
-  };
+  } as Record<string, unknown>;
 
-  // validate only allowed subset (partial ok)
   const parsed = ExpenseSchema.partial().parse(normalized);
-  await updateDoc(ref, parsed);
+
+  // Zod applies defaults for missing fields; ensure we only send the keys we asked for
+  const allowedKeys = new Set(Object.keys(normalized));
+  const sanitized = Object.fromEntries(
+    Object.entries(parsed).filter(([key]) => allowedKeys.has(key))
+  );
+
+  await updateDoc(ref, sanitized);
 }
 
 /**

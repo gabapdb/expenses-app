@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { updateExpensePaid } from "@/data/expenses.repo";
+import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
 import type { Expense } from "@/domain/models";
-import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { peso } from "@/utils/format";
@@ -12,17 +12,29 @@ import ExpenseEditModal from "@/components/ExpenseEditModal";
 interface ExpenseRowProps {
   yyyyMM: string;
   expense?: Expense;
+  projectId?: string;
   onChange?: () => void;
 }
 
 export default function ExpenseRow({
   yyyyMM,
   expense,
+  projectId,
   onChange,
 }: ExpenseRowProps) {
   const [paid, setPaid] = useState<boolean>(expense?.paid ?? false);
   const [saving, setSaving] = useState<boolean>(false);
-  const [adding, setAdding] = useState<boolean>(false); // 🔹 New modal state
+  const [adding, setAdding] = useState<boolean>(false);
+  const [editing, setEditing] = useState<boolean>(false);
+
+  const resolvedProjectId = useMemo(
+    () => expense?.projectId ?? projectId ?? "",
+    [expense?.projectId, projectId]
+  );
+
+  useEffect(() => {
+    setPaid(expense?.paid ?? false);
+  }, [expense?.id, expense?.paid]);
 
   const handlePaid = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const checked = e.target.checked;
@@ -36,6 +48,7 @@ export default function ExpenseRow({
       setSaving(true);
       setPaid(checked);
       await updateExpensePaid(yyyyMM, expense.id, checked, {});
+      void invalidateProjectExpenses(resolvedProjectId);
       onChange?.();
     } catch (err) {
       console.error("[ExpenseRow] Failed to update paid state:", err);
@@ -47,12 +60,24 @@ export default function ExpenseRow({
 
   /* ---------------- Add-new button variant ---------------- */
   if (!expense) {
+    const canCreate = Boolean(resolvedProjectId);
+
     return (
       <div className="border-b py-3 flex items-center justify-center">
         <Button
           type="button"
           className="bg-gray-900 text-white px-4 py-2 rounded hover:bg-black"
-          onClick={() => setAdding(true)}
+          onClick={() => {
+            if (!canCreate) {
+              console.error(
+                "[ExpenseRow] Cannot create expense without a projectId"
+              );
+              return;
+            }
+
+            setAdding(true);
+          }}
+          disabled={!canCreate}
         >
           + Add new expense
         </Button>
@@ -62,6 +87,8 @@ export default function ExpenseRow({
             yyyyMM={yyyyMM}
             expense={{
                 id: crypto.randomUUID(),
+                projectId: resolvedProjectId,
+                yyyyMM,
                 payee: "",
                 category: "",
                 subCategory: "",
@@ -105,10 +132,23 @@ export default function ExpenseRow({
           type="button"
           className="bg-gray-100 text-gray-800 hover:bg-gray-200 px-2 py-1 rounded"
           disabled={saving}
+          onClick={() => setEditing(true)}
         >
           Edit
         </Button>
       </div>
+
+      {editing && (
+        <ExpenseEditModal
+          yyyyMM={yyyyMM}
+          expense={expense}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            onChange?.();
+          }}
+        />
+      )}
     </div>
   );
 }
