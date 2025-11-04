@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import ExpensePieChart from "@/components/charts/ExpensesPieChart";
 import { useProjectExpensesByYear } from "@/hooks/useProjectExpensesByYear";
 import { allMonths, peso } from "@/utils/expenses";
@@ -13,8 +13,25 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState<number>(currentYear);
 
-  const { byMonth, byCategory, totalsByMonth, grandTotal, availableYears, loading, error } =
-    useProjectExpensesByYear(projectId, year);
+  const {
+    byMonth,
+    byCategory,
+    totalsByMonth,
+    grandTotal,
+    availableYears,
+    resolvedYear,
+    loading,
+    error,
+  } = useProjectExpensesByYear(projectId, year);
+
+  const yearOptions = useMemo(() => {
+    if (availableYears.length > 0) {
+      return [...availableYears];
+    }
+    return [currentYear];
+  }, [availableYears, currentYear]);
+
+  const selectValue = yearOptions.includes(year) ? year : resolvedYear;
 
   /** Build data for Pie Chart */
   const pieData = useMemo(
@@ -42,16 +59,14 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
           <select
             id="year"
             className="border border-gray-300 rounded-md px-2 py-1 text-sm"
-            value={year}
+            value={selectValue}
             onChange={(e) => setYear(Number(e.target.value))}
           >
-            {[...new Set([currentYear, ...availableYears])]
-              .sort((a, b) => b - a)
-              .map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -68,7 +83,7 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
               <ExpensePieChart data={pieData} />
             ) : (
               <div className="text-gray-500 text-sm text-center">
-                No data available for {year}.
+                No data available for {resolvedYear}.
               </div>
             )}
           </div>
