@@ -97,6 +97,18 @@ export function clearProjectExpenseCache(projectId?: string) {
   }
 }
 
+export function invalidateProjectExpenses(
+  projectId: string | null | undefined
+): Promise<void> {
+  const normalizedId = projectId?.trim() ?? "";
+  if (!normalizedId) {
+    return Promise.resolve();
+  }
+
+  const promise = fetchProjectExpenses(normalizedId, true);
+  return promise ?? Promise.resolve();
+}
+
 export function useProjectExpensesCollection(projectId: string | null | undefined) {
   const normalizedId = projectId?.trim() ?? "";
 

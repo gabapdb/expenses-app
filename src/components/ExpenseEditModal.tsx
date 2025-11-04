@@ -10,6 +10,7 @@ import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { isoDateToYYYYMM } from "@/utils/time";
+import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
 
 interface ExpenseEditModalProps {
   yyyyMM: string;
@@ -45,6 +46,12 @@ export default function ExpenseEditModal({
     if (!memoizedTrimmedFields.projectId) {
       missing.push("Project");
     }
+    if (
+      typeof values.invoiceDate !== "string" ||
+      values.invoiceDate.trim().length === 0
+    ) {
+      missing.push("Invoice Date");
+    }
     if (!memoizedTrimmedFields.category) {
       missing.push("Category");
     }
@@ -60,7 +67,7 @@ export default function ExpenseEditModal({
       missing,
       isValid: missing.length === 0,
     };
-  }, [memoizedTrimmedFields, values.amount]);
+  }, [memoizedTrimmedFields, values.amount, values.invoiceDate]);
 
   useEffect(() => {
     const incomingUpdatedAt = expense.updatedAt ?? 0;
@@ -159,6 +166,14 @@ export default function ExpenseEditModal({
         throw new Error("Project is required.");
       }
 
+      const trimmedInvoiceDate =
+        typeof values.invoiceDate === "string"
+          ? values.invoiceDate.trim()
+          : "";
+      if (!trimmedInvoiceDate) {
+        throw new Error("Invoice date is required.");
+      }
+
       const trimmedCategory = memoizedTrimmedFields.category;
       if (!trimmedCategory) {
         throw new Error("Category is required.");
@@ -180,6 +195,7 @@ export default function ExpenseEditModal({
         projectId: trimmedProjectId,
         category: trimmedCategory,
         subCategory: trimmedSubCategory,
+        invoiceDate: trimmedInvoiceDate,
         yyyyMM: targetMonth,
         amount: Number(values.amount) || 0,
         paid: Boolean(values.paid),
@@ -224,6 +240,18 @@ export default function ExpenseEditModal({
         batch.delete(sourceRef);
         await batch.commit();
       }
+
+      const projectsToInvalidate = new Set<string>();
+      if (expense.projectId) {
+        projectsToInvalidate.add(expense.projectId);
+      }
+      if (parsed.projectId) {
+        projectsToInvalidate.add(parsed.projectId);
+      }
+
+      projectsToInvalidate.forEach((projectId) => {
+        void invalidateProjectExpenses(projectId);
+      });
 
       onSaved?.(parsed);
       setIsDirty(false);

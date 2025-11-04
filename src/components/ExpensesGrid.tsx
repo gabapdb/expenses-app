@@ -15,6 +15,7 @@ import { uuid } from "@/utils/id";
 import { z } from "zod";
 import ExpenseEditModal from "@/components/ExpenseEditModal";
 import { isoDateToYYYYMM } from "@/utils/time";
+import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -32,18 +33,20 @@ const COLS =
 /* -------------------------------------------------------------------------- */
 const zOptStr = z.string().optional().or(z.literal(""));
 
+const zRequiredStr = z.string().min(1);
+
 const expenseSchema = z.object({
   id: z.string().min(1, "Missing ID"),
   yyyyMM: z.string(),
   projectId: z.string().min(1, "Project required"),
-  invoiceDate: zOptStr,
+  invoiceDate: zRequiredStr,
   datePaid: zOptStr,
   modeOfPayment: zOptStr,
   payee: zOptStr,
-  category: zOptStr,
-  subCategory: zOptStr,
+  category: zRequiredStr,
+  subCategory: zRequiredStr,
   details: zOptStr,
-  amount: z.number(),
+  amount: z.number().min(0, "Amount must be ≥ 0"),
   paid: z.boolean(),
   createdAt: z.number(),
   updatedAt: z.number(),
@@ -107,6 +110,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
 
       setSaving(true);
       await addExpense(targetMonth, data as Expense);
+      void invalidateProjectExpenses(data.projectId);
 
       // reset after save
       setDraft({
