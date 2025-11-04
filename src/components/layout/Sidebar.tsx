@@ -21,35 +21,37 @@ export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
     >
       <div className="sidebar-inner">
         <div className="sidebar-logo">
-          <Image src="/logo.png" alt="APDB" width={28} height={28} priority />
+          <div className="sidebar-logo-icon">
+            <Image src="/logo.png" alt="APDB" width={28} height={28} priority />
+          </div>
           <span className="sidebar-brand">APDB Project & Expenses</span>
         </div>
 
         <nav className="sidebar-nav">
           <Link href="/dashboard" className="sidebar-link">
             <Home size={18} />
-            <span>Dashboard</span>
+            <span className="sidebar-label">Dashboard</span>
           </Link>
           <Link href="/projects" className="sidebar-link">
             <Folder size={18} />
-            <span>Projects</span>
+            <span className="sidebar-label">Projects</span>
           </Link>
           <Link href="/expenses" className="sidebar-link">
             <CreditCard size={18} />
-            <span>Expenses</span>
+            <span className="sidebar-label">Expenses</span>
           </Link>
           <Link href="/summary" className="sidebar-link">
             <BarChart3 size={18} />
-            <span>Summary</span>
+            <span className="sidebar-label">Summary</span>
           </Link>
           <Link href="/settings" className="sidebar-link">
             <Settings size={18} />
-            <span>Settings</span>
+            <span className="sidebar-label">Settings</span>
           </Link>
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-email">you@example.com</div>
+          <span className="user-email">you@example.com</span>
         </div>
       </div>
     </aside>
