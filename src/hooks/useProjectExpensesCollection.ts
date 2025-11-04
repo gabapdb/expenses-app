@@ -1,11 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
-import { collectionGroup, getDocs, query, where } from "firebase/firestore";
+import {
+  collectionGroup,
+  FirestoreError,
+  getDocs,
+  onSnapshot,
+  query,
+  where,
+} from "firebase/firestore";
 
 import { db } from "@/core/firebase";
 import type { Expense } from "@/domain/models";
 import { mapExpense } from "@/domain/mapping";
+import { compareExpensesByPaymentDate } from "@/utils/expenses";
 
 interface ProjectExpenseSnapshot {
   expenses: Expense[];
@@ -16,6 +24,7 @@ interface ProjectExpenseSnapshot {
 interface CacheEntry extends ProjectExpenseSnapshot {
   promise?: Promise<void>;
   listeners: Set<() => void>;
+  unsubscribe?: () => void;
 }
 
 const cache = new Map<string, CacheEntry>();
@@ -65,9 +74,20 @@ async function fetchProjectExpenses(projectId: string, force = false) {
       );
       const snapshot = await getDocs(expensesQuery);
 
-      const expenses = snapshot.docs.map((docSnap) =>
-        mapExpense(docSnap.id, docSnap.data())
-      );
+      const expenses = snapshot.docs
+        .map((docSnap) => {
+          try {
+            return mapExpense(docSnap.id, docSnap.data());
+          } catch (err) {
+            console.error(
+              `[useProjectExpensesCollection] Invalid expense (${docSnap.id}):`,
+              err
+            );
+            return null;
+          }
+        })
+        .filter((expense): expense is Expense => expense !== null)
+        .sort(compareExpensesByPaymentDate);
 
       entry.expenses = expenses;
       entry.error = null;
@@ -89,10 +109,70 @@ async function fetchProjectExpenses(projectId: string, force = false) {
   return loadPromise;
 }
 
+function ensureRealtimeSubscription(projectId: string) {
+  const entry = getOrCreateEntry(projectId);
+  if (entry.unsubscribe) {
+    return;
+  }
+
+  entry.loading = true;
+  notify(projectId);
+
+  const expensesQuery = query(
+    collectionGroup(db, "items"),
+    where("projectId", "==", projectId)
+  );
+
+  entry.unsubscribe = onSnapshot(
+    expensesQuery,
+    (snapshot) => {
+      try {
+        const expenses = snapshot.docs
+          .map((docSnap) => {
+            try {
+              return mapExpense(docSnap.id, docSnap.data());
+            } catch (err) {
+              console.error(
+                `[useProjectExpensesCollection] Invalid expense (${docSnap.id}):`,
+                err
+              );
+              return null;
+            }
+          })
+          .filter((expense): expense is Expense => expense !== null)
+          .sort(compareExpensesByPaymentDate);
+
+        entry.expenses = expenses;
+        entry.error = null;
+      } catch (err) {
+        console.error(
+          "[useProjectExpensesCollection] Unexpected snapshot error:",
+          err
+        );
+        entry.error = "Failed to parse project expenses.";
+        entry.expenses = [];
+      } finally {
+        entry.loading = false;
+        notify(projectId);
+      }
+    },
+    (err: FirestoreError) => {
+      console.error("[useProjectExpensesCollection] Snapshot listener error:", err);
+      entry.error = err.message;
+      entry.expenses = [];
+      entry.loading = false;
+      notify(projectId);
+    }
+  );
+}
+
 export function clearProjectExpenseCache(projectId?: string) {
   if (projectId) {
+    const entry = cache.get(projectId);
+    entry?.unsubscribe?.();
     cache.delete(projectId);
   } else {
+    cache.forEach((entry) => entry.unsubscribe?.());
     cache.clear();
   }
 }
@@ -105,6 +185,7 @@ export function invalidateProjectExpenses(
     return Promise.resolve();
   }
 
+  ensureRealtimeSubscription(normalizedId);
   const promise = fetchProjectExpenses(normalizedId, true);
   return promise ?? Promise.resolve();
 }
@@ -120,8 +201,13 @@ export function useProjectExpensesCollection(projectId: string | null | undefine
 
       const entry = getOrCreateEntry(normalizedId);
       entry.listeners.add(listener);
+      ensureRealtimeSubscription(normalizedId);
       return () => {
         entry.listeners.delete(listener);
+        if (entry.listeners.size === 0 && entry.unsubscribe) {
+          entry.unsubscribe();
+          entry.unsubscribe = undefined;
+        }
       };
     },
     [normalizedId]
@@ -141,10 +227,7 @@ export function useProjectExpensesCollection(projectId: string | null | undefine
   useEffect(() => {
     if (!normalizedId) return;
 
-    const entry = getOrCreateEntry(normalizedId);
-    if (!entry.expenses.length && !entry.loading) {
-      void fetchProjectExpenses(normalizedId);
-    }
+    ensureRealtimeSubscription(normalizedId);
   }, [normalizedId]);
 
   const refetch = useCallback(() => {
