@@ -126,19 +126,19 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Project name</span>
-              <Input value={draft.name} onChange={handleChange("name")} placeholder="Project Alpha" required />
+              <Input value={draft.name} onChange={handleChange("name")} required />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Team</span>
-              <Input value={draft.team} onChange={handleChange("team")} placeholder="Operations" required />
+              <Input value={draft.team} onChange={handleChange("team")} required />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Developer</span>
-              <Input value={draft.developer} onChange={handleChange("developer")} placeholder="Jane Doe" required />
+              <Input value={draft.developer} onChange={handleChange("developer")} required />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">City</span>
-              <Input value={draft.city} onChange={handleChange("city")} placeholder="New York" required />
+              <Input value={draft.city} onChange={handleChange("city")} required />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Start date</span>
@@ -150,11 +150,11 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Project size</span>
-              <Input value={draft.projectSize} onChange={handleChange("projectSize")} placeholder="1200 sq ft" required />
+              <Input value={draft.projectSize} onChange={handleChange("projectSize")} required />
             </label>
             <label className="space-y-1 text-sm">
               <span className="font-medium text-slate-700">Project cost</span>
-              <Input type="number" min="0" step="0.01" value={draft.projectCost} onChange={handleChange("projectCost")} placeholder="100000" required />
+              <Input type="number" min="0" step="0.01" value={draft.projectCost} onChange={handleChange("projectCost")} required />
             </label>
           </div>
 

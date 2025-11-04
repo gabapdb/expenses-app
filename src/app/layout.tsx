@@ -1,28 +1,24 @@
-import "@/styles/design-tokens.css";
 import "@/styles/globals.css";
-import React from "react";
-import AuthButtons from "@/components/AuthButtons";
+import { Inter } from "next/font/google";
+import Sidebar from "@/components/layout/Sidebar";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Expenses App",
-  description: "Next.js + Firebase",
+  title: "Expenses Dashboard",
+  description: "Manage sourcing, petty cash, and liquidation effortlessly.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900">
-        {/* ✅ Moved inside <body> */}
-        <header className="flex justify-between items-center p-4 border-b border-gray-200">
-          <h1 className="font-semibold text-lg">Expenses App</h1>
-          <AuthButtons />
-        </header>
-
-        <main className="mx-auto max-w-6xl p-6 space-y-6">{children}</main>
+      <body className={`${inter.className} bg-[#0f0f0f] text-neutral-100`}>
+        <div className="flex min-h-screen">
+          {/* 🧱 Sidebar always visible */}
+          <Sidebar />
+          {/* 🧾 Page content */}
+          <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+        </div>
       </body>
     </html>
   );
