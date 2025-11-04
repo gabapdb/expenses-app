@@ -12,20 +12,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="flex h-screen w-full overflow-hidden bg-[#121212] text-gray-100 transition-colors"
+      className="relative flex h-screen w-full overflow-hidden bg-[#121212] text-gray-100 transition-colors"
       onMouseLeave={handleLeave}
     >
       {/* Sidebar */}
       <Sidebar expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
 
       {/* Expandable Panel */}
-      <div
-        className={`flex-shrink-0 transition-all duration-300 ease-in-out ${
-          expanded ? "w-72 opacity-100" : "w-0 opacity-0"
-        }`}
-      >
-        <ExpandablePanel expanded={expanded} />
-      </div>
+      <ExpandablePanel expanded={expanded} />
 
       {/* Main Content */}
       <main

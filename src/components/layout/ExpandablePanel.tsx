@@ -7,8 +7,10 @@ export default function ExpandablePanel({ expanded }: { expanded: boolean }) {
   return (
     <motion.aside
       className="drawer"
-      animate={{ width: expanded ? 260 : 0 }}
+      initial={false}
+      animate={{ width: expanded ? 260 : 0, opacity: expanded ? 1 : 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
+      style={{ pointerEvents: expanded ? "auto" : "none" }}
     >
       <div className="drawer-inner">
         {/* Future filters or shortcuts can go here */}
