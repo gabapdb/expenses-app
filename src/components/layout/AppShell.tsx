@@ -12,7 +12,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="relative flex h-screen w-full overflow-hidden bg-[#121212] text-gray-100 transition-colors"
+      className="relative flex h-screen w-full overflow-hidden bg-[#0f0f12] text-gray-100 transition-colors"
       onMouseLeave={handleLeave}
     >
       {/* Sidebar */}
@@ -22,10 +22,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <ExpandablePanel expanded={expanded} />
 
       {/* Main Content */}
-      <main
-        className={`flex-1 overflow-y-auto bg-[#1E1E1E] rounded-l-3xl transition-all duration-300`}
-      >
-        <div className="min-h-screen p-8">{children}</div>
+      <main className="relative flex-1 overflow-y-auto">
+        <div className="min-h-screen rounded-l-[36px] border border-white/5 bg-[#16161a]/95 p-8 shadow-[0_24px_60px_rgba(10,10,20,0.65)] backdrop-blur-lg transition-all duration-300">
+          {children}
+        </div>
       </main>
     </div>
   );

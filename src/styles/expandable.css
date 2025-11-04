@@ -1,20 +1,45 @@
-/* Expandable drawer (matte side panel beside sidebar) */
+/* Expandable drawer (glass overlay beside sidebar) */
 .drawer {
   position: absolute;
   top: 0;
   left: 220px;
   height: 100%;
-  background: #1e1f22; /* matte dark */
-  border-left: 1px solid #2a2a2a;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  z-index: 20;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+  z-index: 30;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  background: linear-gradient(145deg, rgba(24, 24, 32, 0.72), rgba(14, 14, 22, 0.58));
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: 0 40px 90px rgba(6, 6, 14, 0.68);
+  transform-origin: left center;
+  outline: none;
+  will-change: width, opacity;
+}
+
+.drawer-glass {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 10% 10%, rgba(120, 196, 255, 0.32), transparent 55%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
+  opacity: 0.7;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  transition: opacity 200ms ease;
+}
+
+.drawer[data-expanded="false"] .drawer-glass {
+  opacity: 0;
 }
 
 .drawer-inner {
+  position: relative;
   height: 100%;
-  padding: 16px;
-  color: #d6d6d6;
+  padding: 24px;
+  color: rgba(232, 236, 255, 0.85);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
