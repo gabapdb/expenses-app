@@ -1,18 +1,33 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import "@/styles/expandable.css";
 
-export default function ExpandablePanel({ expanded }: { expanded: boolean }) {
+interface ExpandablePanelProps {
+  expanded: boolean;
+  onEnter: () => void;
+  onLeave: () => void;
+}
+
+export default function ExpandablePanel({ expanded, onEnter, onLeave }: ExpandablePanelProps) {
   return (
-    <motion.aside
-      className="drawer"
-      animate={{ width: expanded ? 260 : 0 }}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-    >
-      <div className="drawer-inner">
-        {/* Future filters or shortcuts can go here */}
-      </div>
-    </motion.aside>
+    <AnimatePresence initial={false}>
+      {expanded && (
+        <motion.aside
+          className="drawer"
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: 288, opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          transition={{ duration: 0.26, ease: [0.25, 0.1, 0.25, 1] }}
+          onMouseEnter={onEnter}
+          onMouseLeave={onLeave}
+        >
+          <div className="drawer-surface" aria-hidden />
+          <div className="drawer-inner">
+            {/* Future filters or shortcuts can go here */}
+          </div>
+        </motion.aside>
+      )}
+    </AnimatePresence>
   );
 }

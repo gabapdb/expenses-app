@@ -1,19 +1,37 @@
-/* Expandable drawer (matte side panel beside sidebar) */
+/* Expandable drawer (glass overlay beside sidebar) */
 .drawer {
-  flex-shrink: 0;
-  height: 100vh;
-  background: #1e1f22; /* matte dark */
-  border-left: 1px solid #2a2a2a;
+  position: absolute;
+  top: 0;
+  left: 72px;
+  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  position: relative;
-  z-index: 0;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+  z-index: 30;
+  border-radius: 24px;
+  padding: 1px;
+  transform-origin: left center;
+  pointer-events: auto;
+}
+
+.drawer-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(38, 38, 44, 0.92);
+  box-shadow: 0 32px 85px rgba(8, 8, 18, 0.55);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
 }
 
 .drawer-inner {
+  position: relative;
   height: 100%;
-  padding: 16px;
-  color: #d6d6d6;
+  padding: 24px;
+  color: rgba(234, 236, 248, 0.88);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  z-index: 1;
 }
