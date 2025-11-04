@@ -8,12 +8,12 @@
   display: flex;
   flex-direction: column;
   z-index: 30;
-  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
   border-right: 1px solid rgba(255, 255, 255, 0.04);
-  background: linear-gradient(145deg, rgba(24, 24, 32, 0.72), rgba(14, 14, 22, 0.58));
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  box-shadow: 0 40px 90px rgba(6, 6, 14, 0.68);
+  background: linear-gradient(135deg, rgba(30, 32, 46, 0.72), rgba(20, 22, 34, 0.48));
+  backdrop-filter: blur(26px);
+  -webkit-backdrop-filter: blur(26px);
+  box-shadow: 0 48px 120px rgba(7, 7, 16, 0.72);
   transform-origin: left center;
   outline: none;
   will-change: width, opacity;
@@ -22,9 +22,9 @@
 .drawer-glass {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 10% 10%, rgba(120, 196, 255, 0.32), transparent 55%),
-    linear-gradient(160deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0));
-  opacity: 0.7;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 12% 14%, rgba(142, 198, 255, 0.22), transparent 60%);
+  opacity: 0.55;
   pointer-events: none;
   mix-blend-mode: screen;
   transition: opacity 200ms ease;

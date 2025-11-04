@@ -16,7 +16,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       onMouseLeave={handleLeave}
     >
       {/* Sidebar */}
-      <Sidebar expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
+      <div className="relative z-30 flex-shrink-0" style={{ width: 72 }}>
+        <Sidebar expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
+      </div>
 
       {/* Expandable Panel */}
       <ExpandablePanel expanded={expanded} />
