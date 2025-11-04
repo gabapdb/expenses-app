@@ -25,6 +25,7 @@ interface CacheEntry extends ProjectExpenseSnapshot {
   promise?: Promise<void>;
   listeners: Set<() => void>;
   unsubscribe?: () => void;
+  snapshot: ProjectExpenseSnapshot;
 }
 
 const cache = new Map<string, CacheEntry>();
@@ -43,10 +44,19 @@ function getOrCreateEntry(projectId: string): CacheEntry {
       loading: false,
       error: null,
       listeners: new Set(),
+      snapshot: emptySnapshot,
     };
     cache.set(projectId, entry);
   }
   return entry;
+}
+
+function updateSnapshot(entry: CacheEntry) {
+  entry.snapshot = {
+    expenses: entry.expenses,
+    loading: entry.loading,
+    error: entry.error,
+  };
 }
 
 function notify(projectId: string) {
@@ -64,6 +74,7 @@ async function fetchProjectExpenses(projectId: string, force = false) {
 
   entry.loading = true;
   entry.error = null;
+  updateSnapshot(entry);
   notify(projectId);
 
   const loadPromise = (async () => {
@@ -101,6 +112,7 @@ async function fetchProjectExpenses(projectId: string, force = false) {
     } finally {
       entry.loading = false;
       entry.promise = undefined;
+      updateSnapshot(entry);
       notify(projectId);
     }
   })();
@@ -116,6 +128,7 @@ function ensureRealtimeSubscription(projectId: string) {
   }
 
   entry.loading = true;
+  updateSnapshot(entry);
   notify(projectId);
 
   const expensesQuery = query(
@@ -153,6 +166,7 @@ function ensureRealtimeSubscription(projectId: string) {
         entry.expenses = [];
       } finally {
         entry.loading = false;
+        updateSnapshot(entry);
         notify(projectId);
       }
     },
@@ -161,6 +175,7 @@ function ensureRealtimeSubscription(projectId: string) {
       entry.error = err.message;
       entry.expenses = [];
       entry.loading = false;
+      updateSnapshot(entry);
       notify(projectId);
     }
   );
@@ -218,8 +233,8 @@ export function useProjectExpensesCollection(projectId: string | null | undefine
       return emptySnapshot;
     }
 
-    const { expenses, loading, error } = getOrCreateEntry(normalizedId);
-    return { expenses, loading, error };
+    const entry = getOrCreateEntry(normalizedId);
+    return entry.snapshot;
   }, [normalizedId]);
 
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
