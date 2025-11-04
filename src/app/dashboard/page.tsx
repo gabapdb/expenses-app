@@ -1,34 +1,54 @@
-import { SectionHeader } from "@/components/ui/SectionHeader";
-import { SummaryCard } from "@/components/ui/SummaryCard";
+"use client";
+
+import { motion } from "framer-motion";
+import { Folder, CreditCard, PieChart, Coins } from "lucide-react";
+import SummaryCard from "@/components/ui/SummaryCard";
+import SectionHeader from "@/components/ui/SectionHeader";
+import ExpensesTable from "@/components/ui/ExpensesTable";
+import "@/styles/dashboard.css";
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Overview</h1>
+    <main className="dashboard-container">
+      {/* === Summary Section === */}
+      <SectionHeader title="Overview" subtitle="Project and Expense Summary" />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <SummaryCard title="Total Projects" value="12" />
-        <SummaryCard title="Total Expenses" value="₱245,300" />
-        <SummaryCard title="Balance Remaining" value="₱82,150" />
+      <div className="summary-grid">
+        <SummaryCard
+          title="Total Projects"
+          value="18"
+          icon={<Folder size={28} />}
+          color="blue"
+        />
+        <SummaryCard
+          title="Total Expenses"
+          value="₱1,230,450"
+          icon={<CreditCard size={28} />}
+          color="violet"
+        />
+        <SummaryCard
+          title="Pending Liquidations"
+          value="7"
+          icon={<Coins size={28} />}
+          color="amber"
+        />
+        <SummaryCard
+          title="Remaining Budget"
+          value="₱540,000"
+          icon={<PieChart size={28} />}
+          color="emerald"
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-[#1a1a1a] border border-[#27272a] rounded-xl p-4">
-          <SectionHeader
-            title="Recent Expenses"
-            subtitle="Latest transactions recorded"
-          />
-          <div className="text-sm text-neutral-500">No recent expenses.</div>
-        </div>
+      {/* === Recent Expenses === */}
+      <SectionHeader
+        title="Recent Expenses"
+        subtitle="Latest submitted transactions"
+      />
 
-        <div className="bg-[#1a1a1a] border border-[#27272a] rounded-xl p-4">
-          <SectionHeader
-            title="Active Projects"
-            subtitle="Ongoing work in progress"
-          />
-          <div className="text-sm text-neutral-500">No active projects.</div>
-        </div>
+      <div className="table-wrapper">
+        <ExpensesTable />
       </div>
-    </div>
+    </main>
   );
 }

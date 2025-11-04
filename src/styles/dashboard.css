@@ -1,0 +1,201 @@
+/* ===== Dashboard Layout ===== */
+.dashboard-container {
+  background-color: #1f1f1f;
+  color: #e5e5e5;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+/* ===== Section Headers ===== */
+.section-header {
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.section-subtitle {
+  font-size: 0.9rem;
+  color: #b5b5b5;
+}
+
+/* ===== Summary Grid ===== */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.summary-card {
+  background-color: #2a2a2a;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.summary-card:hover {
+  background-color: #2f2f2f;
+}
+
+.summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.summary-title {
+  font-size: 0.9rem;
+  color: #b5b5b5;
+}
+
+.summary-value {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ===== Table Section ===== */
+.table-wrapper {
+  background-color: #2a2a2a;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e5e5e5;
+}
+
+.expenses-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.75rem;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.expenses-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #333;
+}
+
+.expenses-table tbody tr:nth-child(even) {
+  background-color: #262626;
+}
+
+.expenses-table tbody tr:hover {
+  background-color: #323232;
+  transition: background 0.2s ease;
+}
+
+/* ===== SectionHeader Styles ===== */
+.section-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #f3f4f6; /* Light gray for dark mode */
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  font-size: 0.875rem;
+  color: #9ca3af; /* Muted gray */
+}
+
+/* ====== Page Layouts ====== */
+.dashboard-container {
+  padding: 2rem;
+  background-color: #1f1f1f;
+  color: #e5e5e5;
+  min-height: 100vh;
+}
+
+/* ====== Projects Grid ====== */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+/* ====== Expenses Table ====== */
+.expenses-table-wrapper {
+  background-color: #2a2a2a;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.expenses-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.expenses-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background-color: #242424;
+  color: #f3f4f6;
+  font-weight: 600;
+  border-bottom: 1px solid #3a3a3a;
+}
+
+.expenses-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #333;
+  color: #d1d5db;
+}
+
+.expenses-table tr:hover {
+  background-color: #2f2f2f;
+}
+
+/* ====== Summary Layout ====== */
+.summary-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.summary-top {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.summary-bottom {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 1.5rem;
+}
+
+.summary-card,
+.summary-panel {
+  background-color: #2a2a2a;
+  border-radius: 0.75rem;
+  height: 180px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}

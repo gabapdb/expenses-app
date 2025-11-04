@@ -1,49 +1,54 @@
 "use client";
-import { useState } from "react";
-import { Home, Folder, CreditCard, BarChart3, Settings } from "lucide-react";
+
+import Image from "next/image";
 import Link from "next/link";
+import { Home, Folder, CreditCard, BarChart3, Settings } from "lucide-react";
+import "@/styles/sidebar.css";
 
-const links = [
-  { name: "Dashboard", icon: Home, href: "/dashboard" },
-  { name: "Projects", icon: Folder, href: "/projects" },
-  { name: "Expenses", icon: CreditCard, href: "/expenses" },
-  { name: "Reports", icon: BarChart3, href: "/reports" },
-  { name: "Settings", icon: Settings, href: "/settings" },
-];
+interface Props {
+  expanded: boolean;
+  onEnter: () => void;
+  onLeave: () => void;
+}
 
-export default function Sidebar() {
-  const [expanded, setExpanded] = useState(false);
-
+export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
   return (
     <aside
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-      className={`fixed top-0 left-0 h-screen bg-surface border-r border-border transition-all duration-200 
-        ${expanded ? "w-56" : "w-16"} flex flex-col justify-between`}
+      className={`sidebar ${expanded ? "expanded" : "collapsed"}`}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
     >
-      <nav className="flex flex-col gap-2 mt-4">
-        {links.map(({ name, icon: Icon, href }) => (
-          <Link
-            key={name}
-            href={href}
-            className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-neutral-800 transition"
-          >
-            <Icon size={20} className="text-text-secondary" />
-            <span
-              className={`text-sm font-medium text-text-secondary transition-opacity duration-200 ${
-                expanded ? "opacity-100" : "opacity-0"
-              }`}
-            >
-              {name}
-            </span>
-          </Link>
-        ))}
-      </nav>
+      <div className="sidebar-inner">
+        <div className="sidebar-logo">
+          <Image src="/logo.png" alt="APDB" width={28} height={28} priority />
+          <span className="sidebar-brand">APDB Project & Expenses</span>
+        </div>
 
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-neutral-700" />
-          {expanded && <span className="text-sm text-text-secondary">you@example.com</span>}
+        <nav className="sidebar-nav">
+          <Link href="/dashboard" className="sidebar-link">
+            <Home size={18} />
+            <span>Dashboard</span>
+          </Link>
+          <Link href="/projects" className="sidebar-link">
+            <Folder size={18} />
+            <span>Projects</span>
+          </Link>
+          <Link href="/expenses" className="sidebar-link">
+            <CreditCard size={18} />
+            <span>Expenses</span>
+          </Link>
+          <Link href="/summary" className="sidebar-link">
+            <BarChart3 size={18} />
+            <span>Summary</span>
+          </Link>
+          <Link href="/settings" className="sidebar-link">
+            <Settings size={18} />
+            <span>Settings</span>
+          </Link>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-email">you@example.com</div>
         </div>
       </div>
     </aside>
