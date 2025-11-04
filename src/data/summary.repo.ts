@@ -5,13 +5,8 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "@/core/firebase";
-import { ExpenseSchema, type Expense } from "@/domain/models";
-import { z } from "zod";
-
-/**
- * Zod-safe wrapper for an array of Expense documents.
- */
-const ExpensesArraySchema = z.array(ExpenseSchema);
+import type { Expense } from "@/domain/models";
+import { mapExpense } from "@/domain/mapping";
 
 /**
  * Retrieves all month IDs from Firestore (`expenses` root collection).
@@ -39,13 +34,7 @@ export async function expensesForMonth(yyyyMM: string): Promise<Expense[]> {
   const snap = await getDocs(colRef);
 
   // Collect unknown Firestore payloads first
-  const rawData: unknown[] = snap.docs.map(
-    (d: QueryDocumentSnapshot<DocumentData>) => ({
-      id: d.id,
-      ...d.data(),
-    })
+  return snap.docs.map((d: QueryDocumentSnapshot<DocumentData>) =>
+    mapExpense(d.id, d.data())
   );
-
-  // ✅ Zod-validate all entries before returning
-  return ExpensesArraySchema.parse(rawData);
 }
