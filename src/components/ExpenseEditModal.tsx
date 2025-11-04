@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { doc, setDoc, writeBatch } from "firebase/firestore";
 import { z } from "zod";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
@@ -9,6 +9,8 @@ import Input from "@/components/ui/Input";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
+import { isoDateToYYYYMM } from "@/utils/time";
+import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
 
 interface ExpenseEditModalProps {
   yyyyMM: string;
@@ -26,6 +28,69 @@ export default function ExpenseEditModal({
   const [values, setValues] = useState<Expense>(expense);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState(expense.updatedAt ?? 0);
+
+  const memoizedTrimmedFields = useMemo(
+    () => ({
+      projectId: values.projectId?.trim() ?? "",
+      category: values.category?.trim() ?? "",
+      subCategory: values.subCategory?.trim() ?? "",
+    }),
+    [values.projectId, values.category, values.subCategory]
+  );
+
+  const memoizedValidationHints = useMemo(() => {
+    const missing: string[] = [];
+
+    if (!memoizedTrimmedFields.projectId) {
+      missing.push("Project");
+    }
+    if (
+      typeof values.invoiceDate !== "string" ||
+      values.invoiceDate.trim().length === 0
+    ) {
+      missing.push("Invoice Date");
+    }
+    if (!memoizedTrimmedFields.category) {
+      missing.push("Category");
+    }
+    if (!memoizedTrimmedFields.subCategory) {
+      missing.push("Sub-category");
+    }
+
+    if (!Number.isFinite(values.amount) || values.amount < 0) {
+      missing.push("Amount");
+    }
+
+    return {
+      missing,
+      isValid: missing.length === 0,
+    };
+  }, [memoizedTrimmedFields, values.amount, values.invoiceDate]);
+
+  useEffect(() => {
+    const incomingUpdatedAt = expense.updatedAt ?? 0;
+
+    if (expense.id !== values.id) {
+      setValues(expense);
+      setIsDirty(false);
+      setLastSyncedAt(incomingUpdatedAt);
+      return;
+    }
+
+    if (!isDirty) {
+      setValues(expense);
+      setLastSyncedAt(incomingUpdatedAt);
+      return;
+    }
+
+    if (incomingUpdatedAt > lastSyncedAt) {
+      setValues(expense);
+      setIsDirty(false);
+      setLastSyncedAt(incomingUpdatedAt);
+    }
+  }, [expense, isDirty, lastSyncedAt, values.id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -34,14 +99,55 @@ export default function ExpenseEditModal({
     const { name, value } = target;
     const isCheckbox =
       target instanceof HTMLInputElement && target.type === "checkbox";
-    const newValue = isCheckbox
-      ? (target as HTMLInputElement).checked
-      : value;
 
-    setValues((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+    setValues((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      switch (name) {
+        case "paid":
+          {
+            const nextPaid = isCheckbox
+              ? (target as HTMLInputElement).checked
+              : Boolean(value);
+            if (nextPaid !== prev.paid) {
+              next.paid = nextPaid;
+              changed = true;
+            }
+          }
+          break;
+        case "amount": {
+          if (typeof value === "string" && value.trim() === "") {
+            if (prev.amount !== 0) {
+              next.amount = 0;
+              changed = true;
+            }
+          } else {
+            const numeric = Number(value);
+            if (Number.isFinite(numeric) && numeric !== prev.amount) {
+              next.amount = numeric;
+              changed = true;
+            }
+          }
+          break;
+        }
+        default:
+          if ((next as Record<string, unknown>)[name] !== value) {
+            (next as Record<string, unknown>)[name] = value;
+            changed = true;
+          }
+      }
+
+      if (!changed) {
+        return prev;
+      }
+
+      if (!isDirty) {
+        setIsDirty(true);
+      }
+
+      return next;
+    });
   };
 
   const handleSave = async () => {
@@ -49,24 +155,107 @@ export default function ExpenseEditModal({
     setError(null);
 
     try {
+      if (!memoizedValidationHints.isValid) {
+        throw new Error(
+          `Please complete the following before saving: ${memoizedValidationHints.missing.join(", ")}`
+        );
+      }
+
+      const trimmedProjectId = memoizedTrimmedFields.projectId;
+      if (!trimmedProjectId) {
+        throw new Error("Project is required.");
+      }
+
+      const trimmedInvoiceDate =
+        typeof values.invoiceDate === "string"
+          ? values.invoiceDate.trim()
+          : "";
+      if (!trimmedInvoiceDate) {
+        throw new Error("Invoice date is required.");
+      }
+
+      const trimmedCategory = memoizedTrimmedFields.category;
+      if (!trimmedCategory) {
+        throw new Error("Category is required.");
+      }
+
+      const trimmedSubCategory = memoizedTrimmedFields.subCategory;
+      if (!trimmedSubCategory) {
+        throw new Error("Sub-category is required.");
+      }
+
       // ✅ Normalize values before Zod validation
+      const targetMonth =
+        isoDateToYYYYMM(values.datePaid) ??
+        isoDateToYYYYMM(values.invoiceDate) ??
+        yyyyMM;
+
       const normalized = {
         ...values,
-        projectId: values.projectId?.trim() || "unassigned",
-        yyyyMM, // <-- ensure it's always included
+        projectId: trimmedProjectId,
+        category: trimmedCategory,
+        subCategory: trimmedSubCategory,
+        invoiceDate: trimmedInvoiceDate,
+        yyyyMM: targetMonth,
         amount: Number(values.amount) || 0,
         paid: Boolean(values.paid),
         updatedAt: Date.now(),
+        createdAt: values.createdAt ?? Date.now(),
       };
 
       // ✅ Validate shape via Zod
       const parsed = ExpenseSchema.parse(normalized);
 
-      // ✅ Save to Firestore
-      const ref = doc(db, "expenses", yyyyMM, "items", parsed.id);
-      await setDoc(ref, parsed, { merge: true });
+      const fieldsToCompare: (keyof Expense)[] = [
+        "projectId",
+        "yyyyMM",
+        "payee",
+        "category",
+        "subCategory",
+        "details",
+        "modeOfPayment",
+        "invoiceDate",
+        "datePaid",
+        "amount",
+        "paid",
+      ];
+
+      const hasChanges = fieldsToCompare.some((key) => parsed[key] !== expense[key]);
+
+      if (!hasChanges && parsed.yyyyMM === yyyyMM) {
+        onSaved?.(expense);
+        onClose();
+        return;
+      }
+
+      const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
+
+      // ✅ Save to Firestore (move document when month changes)
+      if (parsed.yyyyMM === yyyyMM) {
+        await setDoc(destinationRef, parsed, { merge: true });
+      } else {
+        const sourceRef = doc(db, "expenses", yyyyMM, "items", parsed.id);
+        const batch = writeBatch(db);
+        batch.set(destinationRef, parsed, { merge: true });
+        batch.delete(sourceRef);
+        await batch.commit();
+      }
+
+      const projectsToInvalidate = new Set<string>();
+      if (expense.projectId) {
+        projectsToInvalidate.add(expense.projectId);
+      }
+      if (parsed.projectId) {
+        projectsToInvalidate.add(parsed.projectId);
+      }
+
+      projectsToInvalidate.forEach((projectId) => {
+        void invalidateProjectExpenses(projectId);
+      });
 
       onSaved?.(parsed);
+      setIsDirty(false);
+      setLastSyncedAt(parsed.updatedAt ?? Date.now());
       onClose();
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -163,6 +352,12 @@ export default function ExpenseEditModal({
           </div>
         </div>
 
+        {!memoizedValidationHints.isValid && (
+          <div className="text-sm text-amber-600 mt-4">
+            Complete required fields: {memoizedValidationHints.missing.join(", ")}
+          </div>
+        )}
+
         <div className="flex justify-end gap-2 mt-6">
           <Button
             type="button"
@@ -174,7 +369,7 @@ export default function ExpenseEditModal({
           <Button
             type="button"
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !memoizedValidationHints.isValid}
             className="bg-gray-900 text-white hover:bg-black"
           >
             {saving ? "Saving…" : "Save Changes"}
