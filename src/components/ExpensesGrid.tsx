@@ -169,9 +169,10 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
   /* ---------------------------------------------------------------------- */
   /* Toggle Paid                                                            */
   /* ---------------------------------------------------------------------- */
-  async function togglePaid(id: string, current: boolean) {
+  async function togglePaid(expense: Expense) {
     try {
-      await updateExpensePaid(yyyyMM, id, !current, {});
+      await updateExpensePaid(yyyyMM, expense.id, !expense.paid, {});
+      void invalidateProjectExpenses(expense.projectId);
     } catch (err) {
       console.error("Failed to toggle paid:", err);
     }
@@ -376,7 +377,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
                     <td className="p-2 text-center">
                       <Checkbox
                         checked={!!e.paid}
-                        onChange={() => togglePaid(e.id, !!e.paid)}
+                        onChange={() => togglePaid(e)}
                       />
                     </td>
                     <td className="p-2 text-center">

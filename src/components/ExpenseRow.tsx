@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { updateExpensePaid } from "@/data/expenses.repo";
+import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
 import type { Expense } from "@/domain/models";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
@@ -47,6 +48,7 @@ export default function ExpenseRow({
       setSaving(true);
       setPaid(checked);
       await updateExpensePaid(yyyyMM, expense.id, checked, {});
+      void invalidateProjectExpenses(resolvedProjectId);
       onChange?.();
     } catch (err) {
       console.error("[ExpenseRow] Failed to update paid state:", err);
