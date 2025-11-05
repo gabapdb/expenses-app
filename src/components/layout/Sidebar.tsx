@@ -1,12 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Home, Folder, CreditCard, BarChart3, Settings } from "lucide-react";
-import { useAuthUser } from "@/hooks/useAuthUser";
-import { toYYYYMM } from "@/utils/time";
 import "@/styles/sidebar.css";
 
 interface Props {
@@ -15,98 +11,51 @@ interface Props {
   onLeave: () => void;
 }
 
-const NAV_ITEMS = [
-  {
-    key: "dashboard",
-    label: "Dashboard",
-    href: "/dashboard",
-    match: "/dashboard",
-    icon: Home,
-  },
-  {
-    key: "projects",
-    label: "Projects",
-    href: "/projects",
-    match: "/projects",
-    icon: Folder,
-  },
-  {
-    key: "expenses",
-    label: "Expenses",
-    href: "/expenses",
-    match: "/expenses",
-    icon: CreditCard,
-  },
-  {
-    key: "summary",
-    label: "Summary",
-    href: "/summary",
-    match: "/summary",
-    icon: BarChart3,
-  },
-  {
-    key: "settings",
-    label: "Settings",
-    href: "/settings",
-    match: "/settings",
-    icon: Settings,
-  },
-];
-
 export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
-  const pathname = usePathname();
-  const { user } = useAuthUser();
-
-  const currentMonthId = useMemo(() => toYYYYMM(), []);
-  const userEmail = user?.email ?? "Sign in to sync";
-
-  const items = useMemo(
-    () =>
-      NAV_ITEMS.map((item) =>
-        item.key === "expenses"
-          ? { ...item, href: `/expenses/${currentMonthId}` }
-          : item
-      ),
-    [currentMonthId]
-  );
-
   return (
     <aside
-      className="sidebar"
-      data-expanded={expanded ? "true" : "false"}
+      className={`sidebar ${expanded ? "expanded" : "collapsed"}`}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
+      onFocus={onEnter}
+      onBlur={handleBlur}
+      data-expanded={expanded}
+      className={clsx(
+        "fixed left-0 top-0 z-40 flex h-full flex-col gap-6 border-r border-white/12 bg-[rgba(22,24,33,0.74)] text-slate-100 shadow-[0_32px_90px_rgba(8,8,18,0.6)] backdrop-blur-2xl transition-[width,padding] duration-250 ease-out",
+        expanded ? "w-[300px] px-5 py-6" : "w-[72px] items-center px-3 py-6"
+      )}
     >
       <div className="sidebar-inner">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <Image src="/logo.png" alt="APDB" width={28} height={28} priority />
-          </div>
+          <Image src="/logo.png" alt="APDB" width={28} height={28} priority />
           <span className="sidebar-brand">APDB Project & Expenses</span>
         </div>
 
         <nav className="sidebar-nav">
-          {items.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.match || pathname.startsWith(`${item.match}/`);
-
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className="sidebar-link"
-                data-active={isActive ? "true" : "false"}
-                aria-current={isActive ? "page" : undefined}
-              >
-                <Icon size={18} />
-                <span className="sidebar-label">{item.label}</span>
-              </Link>
-            );
-          })}
+          <Link href="/dashboard" className="sidebar-link">
+            <Home size={18} />
+            <span>Dashboard</span>
+          </Link>
+          <Link href="/projects" className="sidebar-link">
+            <Folder size={18} />
+            <span>Projects</span>
+          </Link>
+          <Link href="/expenses" className="sidebar-link">
+            <CreditCard size={18} />
+            <span>Expenses</span>
+          </Link>
+          <Link href="/summary" className="sidebar-link">
+            <BarChart3 size={18} />
+            <span>Summary</span>
+          </Link>
+          <Link href="/settings" className="sidebar-link">
+            <Settings size={18} />
+            <span>Settings</span>
+          </Link>
         </nav>
 
         <div className="sidebar-footer">
-          <span className="user-email">{userEmail}</span>
+          <div className="user-email">you@example.com</div>
         </div>
       </div>
     </aside>
