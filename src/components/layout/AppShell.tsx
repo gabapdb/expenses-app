@@ -17,18 +17,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <Sidebar expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
 
-      {/* Expandable Panel */}
-      <div
-        className={`flex-shrink-0 transition-all duration-300 ease-in-out ${
-          expanded ? "w-72 opacity-100" : "w-0 opacity-0"
-        }`}
-      >
-        <ExpandablePanel expanded={expanded} />
-      </div>
-
       {/* Main Content */}
       <main
-        className={`flex-1 overflow-y-auto bg-[#1E1E1E] rounded-l-3xl transition-all duration-300`}
+        className={`flex-1 overflow-y-auto bg-[#1E1E1E] rounded-l-3xl transition-all duration-300 ${
+          expanded ? "ml-[300px]" : "ml-[72px]"
+        }`}
       >
         <div className="min-h-screen p-8">{children}</div>
       </main>
