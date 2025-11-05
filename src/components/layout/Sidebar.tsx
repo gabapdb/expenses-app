@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { format } from "date-fns";
 import { Home, Folder, CreditCard, BarChart3, Settings } from "lucide-react";
 import "@/styles/sidebar.css";
 
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
+  const currentMonthId = format(new Date(), "yyyyMM");
+
   return (
     <aside
       className="sidebar"
@@ -36,7 +39,7 @@ export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
             <Folder size={18} />
             <span className="sidebar-label">Projects</span>
           </Link>
-          <Link href="/expenses" className="sidebar-link">
+          <Link href={`/expenses/${currentMonthId}`} className="sidebar-link">
             <CreditCard size={18} />
             <span className="sidebar-label">Expenses</span>
           </Link>
