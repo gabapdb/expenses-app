@@ -1,99 +1,53 @@
 /* ================================================
-   APP LAYOUT — FIXED SHELL / SIDEBAR / DRAWER
+   APP LAYOUT — fixed shell / sidebar / content
+   Colors matched to dashboard.css
+   Base: #1f1f1f, Text: #e5e5e5, Surface: #242424–#262626
    ================================================ */
 
-/* Matte full app container */
+/* Full app container */
 .shell {
   display: flex;
   flex-direction: row;
   min-height: 100vh;
-  background: #1f1f1f;
+  background: #1f1f1f; /* same as dashboard container */
   color: #e5e5e5;
   overflow: hidden;
   position: relative;
 }
 
-/* Sidebar, drawer, and main content are siblings in the same flex row */
-.main-container {
-  display: flex;
-  flex: 1;
-  position: relative;
-  z-index: 0;
-}
-
-/* Sidebar always on top of content, but below overlays */
-.sidebar-expanded {
-  position: relative;
-  z-index: 30;
-  transition: width 0.3s ease, background 0.3s ease;
-}
-
-/* Expandable drawer sits BESIDE sidebar, not on top */
-.drawer {
-  flex-shrink: 0;
-  background: #202123; /* same tone as sidebar */
-  height: 100vh;
-  border-left: 1px solid #2a2a2a;
-  overflow: hidden;
-  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.05);
-  transition: width 0.25s ease;
-  z-index: 20;
-}
-.drawer.open {
-  width: 200px;
-}
-.drawer:not(.open) {
-  width: 0;
-}
-
-/* Drawer inner content */
-.drawer-inner {
-  height: 100%;
-  padding: 16px;
-  color: #d6d6d6;
-}
-
-/* Main content — never hidden */
-.main-content,
-.content {
-  flex: 1;
-  min-height: 100vh;
-  overflow-y: auto;
-  background: #18181b;
+/* Optional top header bar */
+.app-header {
+  background: #242424;          /* surface tone to match dashboard */
   color: #e5e5e5;
-  transition: margin 0.25s ease;
-  padding: 24px;
-  position: relative;
-  z-index: 10;
+  border-bottom: 1px solid #2a2a2a;
 }
 
-/* Offsets */
-.content {
-  margin-left: 72px; /* collapsed sidebar width */
-  margin-right: 0;
-}
-.content.with-drawer {
-  margin-left: 220px; /* expanded sidebar */
-  margin-right: 200px; /* open drawer */
+/* Main content wrapper */
+.app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: #1f1f1f;          /* same base as dashboard container */
+  color: #e5e5e5;
 }
 
-/* Panels */
-.panel {
-  background: #2a2a2a;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+/* Generic surface (cards, panels) */
+.surface {
+  background: #242424;
+  border: 1px solid #2a2a2a;
+  color: #e5e5e5;
+  border-radius: 0.5rem;
 }
 
-/* Utility text */
-.text-muted {
-  color: #9ca3af;
-}
-.text-error {
-  color: #f87171;
+/* Buttons or subtle dividers that match dashboard.css */
+.divider {
+  border-color: #2a2a2a;
 }
 
-/* Grid layouts */
+/* Utility text to align with dashboard.css */
+.text-muted { color: #9ca3af; }
+.text-error { color: #f87171; }
+
+/* Example grid utility (kept from your file) */
 .projects-grid {
   display: grid;
   gap: 16px;

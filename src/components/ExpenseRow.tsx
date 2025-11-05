@@ -66,7 +66,7 @@ export default function ExpenseRow({
       <div className="border-b py-3 flex items-center justify-center">
         <Button
           type="button"
-          className="bg-gray-900 text-white px-4 py-2 rounded hover:bg-black"
+          className="bg-black text-white px-4 py-2 rounded hover:bg-black"
           onClick={() => {
             if (!canCreate) {
               console.error(
@@ -130,7 +130,7 @@ export default function ExpenseRow({
       <div className="flex justify-end">
         <Button
           type="button"
-          className="bg-gray-100 text-gray-800 hover:bg-gray-200 px-2 py-1 rounded"
+          className="bg-gray-200 text-gray-800 hover:bg-gray-200 px-2 py-1 rounded"
           disabled={saving}
           onClick={() => setEditing(true)}
         >

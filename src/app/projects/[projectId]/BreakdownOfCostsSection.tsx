@@ -60,7 +60,7 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
       {!loading && !error && data.length > 0 && (
         <div className="border border-gray-200 rounded-lg overflow-x-auto">
           <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-gray-50 text-left border-b">
+            <thead className="bg-gray-900 text-left border-b">
               <tr>
                 <th className="p-2 font-medium">Category</th>
                 <th className="p-2 font-medium">Subcategory</th>
@@ -83,7 +83,7 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
                   </tr>
                 );
               })}
-              <tr className="bg-gray-50 font-semibold">
+              <tr className="bg-gray-900 font-semibold">
                 <td className="p-2">TOTAL</td>
                 <td className="p-2">—</td>
                 <td className="p-2 text-right">{peso(totalAmount)}</td>

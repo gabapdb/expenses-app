@@ -25,8 +25,8 @@ const fmtDateInput = (iso?: string) =>
   iso ? new Date(iso).toISOString().slice(0, 10) : "";
 
 /* responsive proportional grid */
-const COLS =
-  "grid-cols-[1.2fr_1fr_1fr_1fr_1fr_1.3fr_1.3fr_2fr_1fr_0.5fr]";
+const COLS = "grid grid-cols-10 md:grid-cols-[repeat(auto-fit,minmax(120px,1fr))]";
+
 
 /* -------------------------------------------------------------------------- */
 /* Zod schema (accepts empty strings)                                         */
@@ -187,7 +187,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
       <div className={`grid ${COLS} items-center gap-2 text-sm px-2 md:px-6`}>
         {/* Project */}
         <select
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-900 px-2 py-1.5 text-sm text-gray-900"
           value={draft.projectId ?? ""}
           onChange={(e) => setDraft({ ...draft, projectId: e.target.value })}
         >
@@ -209,7 +209,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
               invoiceDate: e.target.value || todayISO(),
             })
           }
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
         />
 
         {/* Date Paid */}
@@ -222,7 +222,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
               datePaid: e.target.value || todayISO(),
             })
           }
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
         />
 
         {/* Mode of Payment */}
@@ -233,7 +233,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
           onChange={(e) =>
             setDraft({ ...draft, modeOfPayment: e.target.value })
           }
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
         />
 
         {/* Payee */}
@@ -242,12 +242,12 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
           placeholder="Payee name"
           value={draft.payee ?? ""}
           onChange={(e) => setDraft({ ...draft, payee: e.target.value })}
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
         />
 
         {/* Category */}
         <select
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
           value={draft.category ?? ""}
           onChange={(e) =>
             setDraft({ ...draft, category: e.target.value, subCategory: "" })
@@ -263,7 +263,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
 
         {/* Sub Category */}
         <select
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
           value={draft.subCategory ?? ""}
           onChange={(e) => setDraft({ ...draft, subCategory: e.target.value })}
           disabled={!draft.category}
@@ -284,7 +284,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
           placeholder="Details / description"
           value={draft.details ?? ""}
           onChange={(e) => setDraft({ ...draft, details: e.target.value })}
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-gray-900"
         />
 
         {/* Amount */}
@@ -295,7 +295,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
           onChange={(e) =>
             setDraft({ ...draft, amount: Number(e.target.value || 0) })
           }
-          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-right"
+          className="rounded-md border border-gray-300 px-2 py-1.5 text-sm text-right text-gray-900"
         />
 
         {/* Paid */}
@@ -348,7 +348,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-gray-100 border-b text-left">
+                <tr className="bg-gray-900 border-b text-left">
                   <th className="p-2">Project</th>
                   <th className="p-2">Invoice Date</th>
                   <th className="p-2">Date Paid</th>
@@ -364,7 +364,7 @@ export default function ExpensesGrid({ yyyyMM }: { yyyyMM: string }) {
               </thead>
               <tbody>
                 {expenses.map((e) => (
-                  <tr key={e.id} className="border-b hover:bg-gray-50">
+                  <tr key={e.id} className="border-b hover:bg-gray-200 hover:text-gray-900">
                     <td className="p-2">{projects.find((p) => p.id === e.projectId)?.name || "—"}</td>
                     <td className="p-2">{fmtDateInput(e.invoiceDate)}</td>
                     <td className="p-2">{fmtDateInput(e.datePaid)}</td>

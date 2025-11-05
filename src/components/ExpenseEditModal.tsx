@@ -297,6 +297,7 @@ export default function ExpenseEditModal({
             onChange={handleChange}
           />
           <Input
+            
             name="category"
             placeholder="Category"
             value={values.category ?? ""}
