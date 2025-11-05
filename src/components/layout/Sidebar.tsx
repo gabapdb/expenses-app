@@ -1,10 +1,9 @@
 "use client";
 
-import { clsx } from "clsx";
-import { BarChart3, CreditCard, Folder, Home, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { FocusEvent } from "react";
+import { Home, Folder, CreditCard, BarChart3, Settings } from "lucide-react";
+import "@/styles/sidebar.css";
 
 interface Props {
   expanded: boolean;
@@ -12,23 +11,10 @@ interface Props {
   onLeave: () => void;
 }
 
-const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/projects", label: "Projects", icon: Folder },
-  { href: "/expenses", label: "Expenses", icon: CreditCard },
-  { href: "/summary", label: "Summary", icon: BarChart3 },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
 export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
-  const handleBlur = (event: FocusEvent<HTMLElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      onLeave();
-    }
-  };
-
   return (
     <aside
+      className={`sidebar ${expanded ? "expanded" : "collapsed"}`}
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
       onFocus={onEnter}
@@ -39,89 +25,38 @@ export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
         expanded ? "w-[300px] px-5 py-6" : "w-[72px] items-center px-3 py-6"
       )}
     >
-      <div
-        className={clsx(
-          "flex items-center rounded-2xl border border-white/12 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] transition-all duration-300",
-          expanded ? "w-full gap-3 px-3 py-2" : "h-12 w-12 justify-center"
-        )}
-      >
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/15 bg-white/12">
-          <Image src="/logo.png" alt="APDB" width={24} height={24} priority />
+      <div className="sidebar-inner">
+        <div className="sidebar-logo">
+          <Image src="/logo.png" alt="APDB" width={28} height={28} priority />
+          <span className="sidebar-brand">APDB Project & Expenses</span>
         </div>
-        <span
-          className={clsx(
-            "overflow-hidden text-sm font-semibold tracking-wide text-slate-50 transition-all duration-200 transform-gpu",
-            expanded
-              ? "max-w-[180px] opacity-100 translate-x-0"
-              : "max-w-0 -translate-x-2 opacity-0"
-          )}
-        >
-          APDB Project & Expenses
-        </span>
-      </div>
 
-      <nav
-        className={clsx(
-          "flex flex-1 flex-col gap-2 transition-all duration-300",
-          expanded ? "w-full" : "w-full items-center"
-        )}
-      >
-        {NAV_LINKS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            aria-label={label}
-            className={clsx(
-              "group/nav flex items-center rounded-2xl border border-transparent text-slate-200 transition-all duration-200 ease-out hover:border-white/15 hover:bg-white/12 hover:text-white",
-              expanded ? "w-full gap-3 px-3 py-3" : "h-12 w-12 justify-center"
-            )}
-          >
-            <span
-              className={clsx(
-                "flex items-center justify-center rounded-2xl border border-white/12 bg-white/10 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-200 group-hover/nav:border-white/20 group-hover/nav:bg-white/16",
-                expanded ? "h-10 w-10" : "h-12 w-12"
-              )}
-            >
-              <Icon className="h-5 w-5" strokeWidth={1.8} />
-            </span>
-            <span
-              className={clsx(
-                "overflow-hidden text-[0.95rem] font-medium text-slate-100 transition-all duration-200 transform-gpu",
-                expanded
-                  ? "max-w-[180px] opacity-100 translate-x-0"
-                  : "max-w-0 -translate-x-2 opacity-0"
-              )}
-            >
-              {label}
-            </span>
+        <nav className="sidebar-nav">
+          <Link href="/dashboard" className="sidebar-link">
+            <Home size={18} />
+            <span>Dashboard</span>
           </Link>
-        ))}
-      </nav>
+          <Link href="/projects" className="sidebar-link">
+            <Folder size={18} />
+            <span>Projects</span>
+          </Link>
+          <Link href="/expenses" className="sidebar-link">
+            <CreditCard size={18} />
+            <span>Expenses</span>
+          </Link>
+          <Link href="/summary" className="sidebar-link">
+            <BarChart3 size={18} />
+            <span>Summary</span>
+          </Link>
+          <Link href="/settings" className="sidebar-link">
+            <Settings size={18} />
+            <span>Settings</span>
+          </Link>
+        </nav>
 
-      <div
-        className={clsx(
-          "mt-auto flex items-center rounded-2xl border border-white/12 bg-white/10 text-xs text-slate-100/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-300",
-          expanded ? "w-full px-4 py-3" : "h-12 w-12 justify-center"
-        )}
-      >
-        <span
-          className={clsx(
-            "overflow-hidden text-[0.88rem] font-medium tracking-wide text-slate-100 transition-all duration-200 transform-gpu",
-            expanded
-              ? "max-w-[200px] opacity-100 translate-x-0"
-              : "max-w-0 -translate-x-2 opacity-0"
-          )}
-        >
-          you@example.com
-        </span>
-        <span
-          className={clsx(
-            "text-sm font-medium text-slate-100 transition-opacity duration-200",
-            expanded ? "hidden" : "block"
-          )}
-        >
-          you
-        </span>
+        <div className="sidebar-footer">
+          <div className="user-email">you@example.com</div>
+        </div>
       </div>
     </aside>
   );
