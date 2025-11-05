@@ -1,0 +1,83 @@
+/* ============================================================
+   Sidebar – matched to dashboard.css palette
+   Base: #1f1f1f, Text: #e5e5e5, Surface: #242424–#262626
+   ============================================================ */
+
+.sidebar {
+  /* positioning / layout */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+  overflow: hidden;
+
+  /* theme + effects */
+  color: #e5e5e5;
+  background-color: #1f1f1f; /* same as dashboard container */
+  backdrop-filter: blur(10px);
+  transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out, filter 0.3s ease-in-out;
+
+  /* width (tailwind equivalent of w-16) */
+  width: 4rem;
+
+  /* natural, ambient edge (softer than box-shadow) */
+  filter: drop-shadow(0 0 8px rgba(0,0,0,0.12))
+          drop-shadow(4px 0 20px rgba(0,0,0,0.25));
+}
+
+/* Keep class for compatibility; base .sidebar already defines collapsed look */
+.sidebar-collapsed {}
+
+/* Expanded: a touch lighter like dashboard surfaces */
+.sidebar-expanded {
+  width: 16rem; /* tailwind w-64 */
+  background-color: rgba(36, 36, 36, 0.96); /* ~ #242424 with slight translucence */
+  filter: drop-shadow(0 0 12px rgba(0,0,0,0.16))
+          drop-shadow(8px 0 32px rgba(0,0,0,0.32));
+}
+
+/* Label reveal (fade + slight slide) */
+.sidebar-label {
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+.sidebar-expanded .sidebar-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Navigation items */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: #e5e5e5;
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.sidebar-item:hover {
+  background-color: #262626; /* hover surface matches dashboard tones */
+  color: #e5e5e5;
+}
+
+/* Icon color */
+.sidebar-icon {
+  flex-shrink: 0;
+  color: #b5b5b5; /* subtle gray from dashboard palette */
+}
+
+/* Footer text (email, version, etc.) */
+.sidebar-footer {
+  padding: 0.75rem;
+  font-size: 0.75rem;
+  color: #9ca3af; /* muted */
+}
