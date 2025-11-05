@@ -1,9 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { format } from "date-fns";
+import { usePathname } from "next/navigation";
 import { Home, Folder, CreditCard, BarChart3, Settings } from "lucide-react";
+import { useAuthUser } from "@/hooks/useAuthUser";
+import { toYYYYMM } from "@/utils/time";
 import "@/styles/sidebar.css";
 
 interface Props {
@@ -12,8 +15,60 @@ interface Props {
   onLeave: () => void;
 }
 
+const NAV_ITEMS = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard",
+    match: "/dashboard",
+    icon: Home,
+  },
+  {
+    key: "projects",
+    label: "Projects",
+    href: "/projects",
+    match: "/projects",
+    icon: Folder,
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    href: "/expenses",
+    match: "/expenses",
+    icon: CreditCard,
+  },
+  {
+    key: "summary",
+    label: "Summary",
+    href: "/summary",
+    match: "/summary",
+    icon: BarChart3,
+  },
+  {
+    key: "settings",
+    label: "Settings",
+    href: "/settings",
+    match: "/settings",
+    icon: Settings,
+  },
+];
+
 export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
-  const currentMonthId = format(new Date(), "yyyyMM");
+  const pathname = usePathname();
+  const { user } = useAuthUser();
+
+  const currentMonthId = useMemo(() => toYYYYMM(), []);
+  const userEmail = user?.email ?? "Sign in to sync";
+
+  const items = useMemo(
+    () =>
+      NAV_ITEMS.map((item) =>
+        item.key === "expenses"
+          ? { ...item, href: `/expenses/${currentMonthId}` }
+          : item
+      ),
+    [currentMonthId]
+  );
 
   return (
     <aside
@@ -31,30 +86,27 @@ export default function Sidebar({ expanded, onEnter, onLeave }: Props) {
         </div>
 
         <nav className="sidebar-nav">
-          <Link href="/dashboard" className="sidebar-link">
-            <Home size={18} />
-            <span className="sidebar-label">Dashboard</span>
-          </Link>
-          <Link href="/projects" className="sidebar-link">
-            <Folder size={18} />
-            <span className="sidebar-label">Projects</span>
-          </Link>
-          <Link href={`/expenses/${currentMonthId}`} className="sidebar-link">
-            <CreditCard size={18} />
-            <span className="sidebar-label">Expenses</span>
-          </Link>
-          <Link href="/summary" className="sidebar-link">
-            <BarChart3 size={18} />
-            <span className="sidebar-label">Summary</span>
-          </Link>
-          <Link href="/settings" className="sidebar-link">
-            <Settings size={18} />
-            <span className="sidebar-label">Settings</span>
-          </Link>
+          {items.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.match || pathname.startsWith(`${item.match}/`);
+
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className="sidebar-link"
+                data-active={isActive ? "true" : "false"}
+                aria-current={isActive ? "page" : undefined}
+              >
+                <Icon size={18} />
+                <span className="sidebar-label">{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
-          <span className="user-email">you@example.com</span>
+          <span className="user-email">{userEmail}</span>
         </div>
       </div>
     </aside>
