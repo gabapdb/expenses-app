@@ -1,13 +1,6 @@
-import {
-  collection,
-  doc,
-  setDoc,
-  updateDoc,
-  getFirestore,
-} from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
-
 /**
  * Add a new expense document.
  * - Validates with Zod before writing.
@@ -94,4 +87,14 @@ export async function mirrorPaidToProject(
  */
 export function expensesCollectionRef(yyyyMM: string) {
   return collection(db, "expenses", yyyyMM, "items");
+}
+
+
+/**
+ * Delete an expense document.
+ * - Removes Firestore document at: expenses/{yyyyMM}/items/{expenseId}
+ */
+export async function deleteExpense(yyyyMM: string, expenseId: string): Promise<void> {
+  const ref = doc(db, "expenses", yyyyMM, "items", expenseId);
+  await deleteDoc(ref);
 }

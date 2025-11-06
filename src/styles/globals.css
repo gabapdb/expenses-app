@@ -39,3 +39,17 @@ a {
 ::-webkit-scrollbar-track {
   background-color: #1f1f1f;
 }
+
+@layer components {
+  .input-dark {
+    @apply w-full min-w-[160px] rounded-md border border-[#3a3a3a] bg-[#242424] 
+           px-3 py-1.5 text-sm text-[#e5e5e5] 
+           focus:outline-none focus:ring-2 focus:ring-[#9ca3af]/40
+           transition;
+  }
+}
+
+.input-dark[type="date"],
+.input-dark[type="number"] {
+  color-scheme: dark;
+}
