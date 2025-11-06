@@ -1,110 +1,82 @@
 "use client";
 
-import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
+import { useState, useMemo, FormEvent, ChangeEvent } from "react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import Card from "@/components/ui/Card";
 import { upsertProject } from "@/data/projects.repo";
-import type { Project } from "@/domain/models";
+import { ProjectSchema, type Project } from "@/domain/models";
 
-interface ProjectCreateModalProps {
+interface ProjectEditModalProps {
+  project: Project;
   onClose: () => void;
+  onSaved?: (updated: Project) => void;
 }
 
-interface DraftProject {
-  name: string;
-  team: string;
-  projectCost: string;
-  developer: string;
-  city: string;
-  startDate: string;
-  endDate: string;
-  projectSize: string;
-}
-
-const initialDraft: DraftProject = {
-  name: "",
-  team: "",
-  projectCost: "",
-  developer: "",
-  city: "",
-  startDate: "",
-  endDate: "",
-  projectSize: "",
-};
-
-function generateProjectId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
+export default function ProjectEditModal({
+  project,
+  onClose,
+  onSaved,
+}: ProjectEditModalProps) {
+  const [draft, setDraft] = useState<Project>({
+    ...project,
+    team: project.team ?? "",
+    developer: project.developer ?? "",
+    city: project.city ?? "",
+    projectSize: project.projectSize ?? "",
+    startDate: project.startDate ?? "",
+    endDate: project.endDate ?? "",
+    createdAt: project.createdAt ?? Date.now(),
   });
-}
 
-export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps) {
-  const [draft, setDraft] = useState<DraftProject>(initialDraft);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const trimmed = useMemo(
     () => ({
+      ...draft,
       name: draft.name.trim(),
       team: draft.team.trim(),
-      developer: draft.developer.trim(),
-      city: draft.city.trim(),
-      projectSize: draft.projectSize.trim(),
-      startDate: draft.startDate.trim(),
-      endDate: draft.endDate.trim(),
-      projectCost: draft.projectCost.trim(),
+      developer: draft.developer?.trim() ?? "",
+      city: draft.city?.trim() ?? "",
+      projectSize: draft.projectSize?.trim() ?? "",
+      startDate: draft.startDate?.trim() ?? "",
+      endDate: draft.endDate?.trim() ?? "",
     }),
     [draft]
   );
 
- const canSave = useMemo(() => {
-  if (!trimmed.name || !trimmed.team) return false;
-
-  const cost = Number(trimmed.projectCost);
-  if (!Number.isFinite(cost) || cost < 0) return false;
-
-  return true;
-}, [trimmed]);
-
+  const canSave = useMemo(() => {
+    return trimmed.name && trimmed.team && trimmed.projectCost >= 0;
+  }, [trimmed]);
 
   const handleChange =
-    (field: keyof DraftProject) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setDraft((prev) => ({ ...prev, [field]: event.target.value }));
+    (field: keyof Project) => (e: ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setDraft((prev) => ({
+        ...prev,
+        [field]: field === "projectCost" ? Number(value) : value,
+      }));
     };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!canSave || saving) return;
 
     setSaving(true);
     setError(null);
 
     try {
-      const payload: Project = {
-        id: generateProjectId(),
-        name: trimmed.name,
-        team: trimmed.team,
-        projectCost: Number(trimmed.projectCost) || 0,
-        developer: trimmed.developer,
-        city: trimmed.city,
-        startDate: trimmed.startDate,
-        endDate: trimmed.endDate,
-        projectSize: trimmed.projectSize,
-        createdAt: Date.now(),
-      };
+      const parsed = ProjectSchema.parse({
+        ...trimmed,
+        updatedAt: Date.now(),
+        createdAt: draft.createdAt ?? Date.now(),
+      });
 
-      await upsertProject(payload);
-      setDraft(initialDraft);
+      await upsertProject(parsed);
+      onSaved?.(parsed);
       onClose();
     } catch (err) {
-      console.error("[ProjectCreateModal] Failed to save project", err);
+      console.error("[ProjectEditModal] Failed to save project", err);
       setError(err instanceof Error ? err.message : "Failed to save project");
     } finally {
       setSaving(false);
@@ -115,7 +87,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="w-full max-w-3xl rounded-xl border border-[#3a3a3a] bg-[#1f1f1f] p-6 shadow-xl">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-[#e5e5e5]">Create Project</h2>
+          <h2 className="text-lg font-semibold text-[#e5e5e5]">Edit Project</h2>
           <button
             onClick={onClose}
             className="text-[#9ca3af] hover:text-[#e5e5e5] text-sm"
@@ -132,7 +104,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
               <Input
                 value={draft.name}
                 onChange={handleChange("name")}
-                placeholder="Enter project name"
+                placeholder="Project name"
                 className="input-dark"
                 required
               />
@@ -142,7 +114,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
               <Input
                 value={draft.team}
                 onChange={handleChange("team")}
-                placeholder="Enter team name"
+                placeholder="Team"
                 className="input-dark"
                 required
               />
@@ -150,16 +122,16 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
 
             <FormField label="Developer">
               <Input
-                value={draft.developer}
+                value={draft.developer ?? ""}
                 onChange={handleChange("developer")}
-                placeholder="Developer name"
+                placeholder="Developer"
                 className="input-dark"
               />
             </FormField>
 
             <FormField label="City">
               <Input
-                value={draft.city}
+                value={draft.city ?? ""}
                 onChange={handleChange("city")}
                 placeholder="City"
                 className="input-dark"
@@ -169,7 +141,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
             <FormField label="Start Date">
               <Input
                 type="date"
-                value={draft.startDate}
+                value={draft.startDate ?? ""}
                 onChange={handleChange("startDate")}
                 className="input-dark"
               />
@@ -178,7 +150,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
             <FormField label="End Date">
               <Input
                 type="date"
-                value={draft.endDate}
+                value={draft.endDate ?? ""}
                 onChange={handleChange("endDate")}
                 className="input-dark"
               />
@@ -186,7 +158,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
 
             <FormField label="Project Size">
               <Input
-                value={draft.projectSize}
+                value={draft.projectSize ?? ""}
                 onChange={handleChange("projectSize")}
                 placeholder="e.g. 150 sqm"
                 className="input-dark"
@@ -196,7 +168,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
             <FormField label="Project Cost">
               <Input
                 type="number"
-                value={draft.projectCost}
+                value={String(draft.projectCost)}
                 onChange={handleChange("projectCost")}
                 placeholder="₱"
                 className="input-dark text-right"
@@ -218,7 +190,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
               disabled={!canSave || saving}
               className="bg-[#6366f1] text-white hover:bg-[#4f46e5]"
             >
-              {saving ? "Saving…" : "Create Project"}
+              {saving ? "Saving…" : "Save Changes"}
             </Button>
           </div>
         </form>
@@ -227,7 +199,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
   );
 }
 
-/* ----------------------------- Helper field ----------------------------- */
+/* Helper */
 function FormField({
   label,
   children,

@@ -11,6 +11,12 @@ export const CATEGORY_MAP = {
     "Cabinets",
     "Miscellaneous",
     "Relaminate",
+    "Electrical",
+    "Plumbing",
+    "Tiles",
+    "Paint",
+    "Ceiling",
+    "Flooring",
   ],
   Materials: [
     "Hardware Materials",

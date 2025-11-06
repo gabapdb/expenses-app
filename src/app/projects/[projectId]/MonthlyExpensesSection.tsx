@@ -24,16 +24,13 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
     error,
   } = useProjectExpensesByYear(projectId, year);
 
-  const yearOptions = useMemo(() => {
-    if (availableYears.length > 0) {
-      return [...availableYears];
-    }
-    return [currentYear];
-  }, [availableYears, currentYear]);
+  const yearOptions = useMemo(
+    () => (availableYears.length ? [...availableYears] : [currentYear]),
+    [availableYears, currentYear]
+  );
 
   const selectValue = yearOptions.includes(year) ? year : resolvedYear;
 
-  /** Build data for Pie Chart */
   const pieData = useMemo(
     () =>
       Object.entries(byCategory).map(([category, total]) => ({
@@ -43,22 +40,21 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
     [byCategory]
   );
 
-  /** Build list of all categories in sorted order */
   const categories = useMemo(() => Object.keys(byCategory).sort(), [byCategory]);
 
   return (
     <section className="space-y-4">
-      {/* Toolbar header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-        <h2 className="text-lg font-semibold">Monthly Expenses</h2>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between border-b border-[#3a3a3a] pb-2">
+        <h2 className="text-lg font-semibold text-[#e5e5e5]">Monthly Expenses</h2>
 
         <div className="flex items-center gap-2 text-sm">
-          <label htmlFor="year" className="text-gray-600">
+          <label htmlFor="year" className="text-[#9ca3af]">
             Year:
           </label>
           <select
             id="year"
-            className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+            className="border border-[#3a3a3a] bg-[#1f1f1f] text-[#d1d5db] rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#4f4f4f]"
             value={selectValue}
             onChange={(e) => setYear(Number(e.target.value))}
           >
@@ -71,32 +67,32 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
         </div>
       </div>
 
-      {/* Loading & error states */}
-      {loading && <div className="text-gray-500 text-sm">Loading expenses…</div>}
-      {error && <div className="text-red-600 text-sm">{error}</div>}
+      {/* States */}
+      {loading && <div className="text-[#9ca3af] text-sm">Loading expenses…</div>}
+      {error && <div className="text-[#f87171] text-sm">{error}</div>}
 
       {!loading && !error && (
         <>
           {/* Pie Chart */}
-          <div className="border border-gray-200 rounded-lg p-4">
+          <div className="border border-[#3a3a3a] rounded-xl p-4 bg-[#1f1f1f]">
             {pieData.length > 0 ? (
               <ExpensePieChart data={pieData} />
             ) : (
-              <div className="text-gray-500 text-sm text-center">
+              <div className="text-[#9ca3af] text-sm text-center">
                 No data available for {resolvedYear}.
               </div>
             )}
           </div>
 
           {/* Table */}
-          <div className="border border-gray-200 rounded-lg overflow-x-auto">
-            <table className="min-w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-gray-900 text-left border-b">
-                  <th className="p-2 font-medium">Month</th>
-                  <th className="p-2 font-medium text-right">Total</th>
+          <div className="border border-[#3a3a3a] rounded-xl overflow-x-auto bg-[#1f1f1f]">
+            <table className="min-w-full border-collapse text-sm text-[#d1d5db]">
+              <thead className="bg-[#262626] border-b border-[#3a3a3a]">
+                <tr>
+                  <th className="p-3 font-medium text-left">Month</th>
+                  <th className="p-3 font-medium text-right">Total</th>
                   {categories.map((cat) => (
-                    <th key={cat} className="p-2 font-medium text-right">
+                    <th key={cat} className="p-3 font-medium text-right">
                       {cat}
                     </th>
                   ))}
@@ -104,25 +100,27 @@ export default function MonthlyExpensesSection({ projectId }: MonthlyExpensesSec
               </thead>
               <tbody>
                 {allMonths.map((month) => (
-                  <tr key={month} className="border-b last:border-0">
-                    <td className="p-2">{month}</td>
-                    <td className="p-2 text-right font-medium">
+                  <tr
+                    key={month}
+                    className="border-b border-[#3a3a3a] last:border-0 hover:bg-[#2a2a2a]/60 transition-colors"
+                  >
+                    <td className="p-3">{month}</td>
+                    <td className="p-3 text-right font-medium">
                       {peso(totalsByMonth[month] ?? 0)}
                     </td>
                     {categories.map((cat) => (
-                      <td key={cat} className="p-2 text-right">
+                      <td key={cat} className="p-3 text-right">
                         {peso(byMonth[month]?.[cat] ?? 0)}
                       </td>
                     ))}
                   </tr>
                 ))}
 
-                {/* Totals Row */}
-                <tr className="bg-gray-900 font-semibold">
-                  <td className="p-2">TOTAL</td>
-                  <td className="p-2 text-right">{peso(grandTotal)}</td>
+                <tr className="bg-[#2a2a2a] font-semibold border-t border-[#3a3a3a]">
+                  <td className="p-3">TOTAL</td>
+                  <td className="p-3 text-right">{peso(grandTotal)}</td>
                   {categories.map((cat) => (
-                    <td key={cat} className="p-2 text-right">
+                    <td key={cat} className="p-3 text-right">
                       {peso(byCategory[cat] ?? 0)}
                     </td>
                   ))}

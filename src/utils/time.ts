@@ -16,3 +16,11 @@ export const isoDateToYYYYMM = (
 
   return toYYYYMM(parsed);
 };
+
+// src/utils/time.ts
+export const fmtDateInput = (d?: Date | string | null): string => {
+  if (!d) return "";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().split("T")[0]; // yyyy-mm-dd for <input type="date" />
+};
