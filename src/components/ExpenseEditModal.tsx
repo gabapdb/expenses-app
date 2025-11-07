@@ -16,8 +16,8 @@ import DetailsAutocomplete from "@/components/DetailsAutocomplete"; // 🧩 NEW
 interface ExpenseEditModalProps {
   yyyyMM: string;
   expense: Expense;
-  projects: { id: string; name: string }[];
-  categorySource: Record<string, readonly string[]>;
+   projects?: { id: string; name: string }[]; // 🧩 now optional
+  categorySource?: Record<string, readonly string[]>; // 🧩 now optional
   onClose: () => void;
   onSaved?: (saved: Expense) => void;
 }
@@ -31,8 +31,8 @@ const fmtDateInput = (iso?: string) =>
 export default function ExpenseEditModal({
   yyyyMM,
   expense,
-  projects,
-  categorySource,
+  projects = [], // 🧩 default empty array
+  categorySource = {}, // 🧩 default empty map
   onClose,
   onSaved,
 }: ExpenseEditModalProps) {
