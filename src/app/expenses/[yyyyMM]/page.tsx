@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAvailableExpenseYearsAndMonths } from "@/hooks/useAvailableExpenseYearsAndMonths";
 import ExpensesGrid from "@/components/ExpensesGrid";
@@ -11,10 +11,10 @@ import ExpensesGrid from "@/components/ExpensesGrid";
 export default function ExpensesPage({
   params,
 }: {
-  params: Promise<{ yyyyMM: string }>;
+  params: { yyyyMM: string };
 }) {
   const router = useRouter();
-  const { yyyyMM } = use(params);
+  const { yyyyMM } = params;
 
   const { info, latestYear, latestMonth, loading, error } =
     useAvailableExpenseYearsAndMonths();

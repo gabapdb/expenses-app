@@ -9,7 +9,7 @@ interface DetailsAutocompleteProps {
   value: string;
   onChange: (val: string) => void;
   onSelectSuggestion?: (item: ItemRecord) => void;
-  onBlurAutoCategorize?: (val: string) => void; // ✅ optional hook trigger
+  onBlurAutoCategorize?: (val: string) => void;
 }
 
 /**
@@ -35,7 +35,9 @@ export default function DetailsAutocomplete({
   useEffect(() => {
     (async () => {
       const cached = await loadItemsCache();
-      if (cached?.length) setItems(cached);
+      if (cached?.length) {
+        setItems(cached);
+      }
     })();
   }, []);
 
@@ -56,71 +58,61 @@ export default function DetailsAutocomplete({
       setSuggestions(matches);
       setOpen(matches.length > 0);
       setHighlightIndex(0);
-    }, 80); // ✅ 80ms debounce is fast + stable
+    }, 80);
 
     return () => clearTimeout(handle);
   }, [value, items]);
 
   /* ------------------------- Close dropdown on click-out ---------------------- */
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!containerRef.current?.contains(event.target as Node)) {
         setOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* -------------------------- Handle suggestion pick -------------------------- */
-const selectSuggestion = useCallback(
-  (item: ItemRecord) => {
-    onChange(item.name);
-    onSelectSuggestion?.(item);
+  const selectSuggestion = useCallback(
+    (item: ItemRecord) => {
+      onChange(item.name);
+      onSelectSuggestion?.(item);
 
-    // 🔒 Close the dropdown cleanly after the current click cycle
-    requestAnimationFrame(() => setOpen(false));
+      // Close the dropdown after the click finishes
+      requestAnimationFrame(() => setOpen(false));
 
-    // ✅ Trigger autoCategorizer immediately
-    onBlurAutoCategorize?.(item.name);
-  },
-  [onChange, onSelectSuggestion, onBlurAutoCategorize]
-);
-
-/* ------------------------- Close dropdown on click-out ---------------------- */
-useEffect(() => {
-  const handleClickOutside = (e: MouseEvent) => {
-    // Prevent closing when clicking a suggestion (before onClick)
-    if (!containerRef.current?.contains(e.target as Node)) {
-      setOpen(false);
-    }
-  };
-  document.addEventListener("mousedown", handleClickOutside);
-  return () => document.removeEventListener("mousedown", handleClickOutside);
-}, []);
-
+      onBlurAutoCategorize?.(item.name);
+    },
+    [onChange, onSelectSuggestion, onBlurAutoCategorize]
+  );
 
   /* -------------------------- Keyboard navigation ----------------------------- */
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (!open || suggestions.length === 0) return;
 
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
       setHighlightIndex((i) => (i + 1) % suggestions.length);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
       setHighlightIndex((i) => (i - 1 + suggestions.length) % suggestions.length);
-    }else if (e.key === "Enter" || e.key === "Tab") {
-  e.preventDefault();
-  const selected = suggestions[highlightIndex];
-  if (selected) selectSuggestion(selected);
-  requestAnimationFrame(() => setOpen(false)); // ensure closure after key select
-}
+    } else if (event.key === "Enter" || event.key === "Tab") {
+      event.preventDefault();
+      const selected = suggestions[highlightIndex];
+      if (selected) {
+        selectSuggestion(selected);
+      }
+    }
   };
 
   /* ---------------------------- Blur autoCategorize ---------------------------- */
   const handleBlur = () => {
-    if (value.trim()) onBlurAutoCategorize?.(value);
+    if (value.trim()) {
+      onBlurAutoCategorize?.(value);
+    }
   };
 
   /* ---------------------------------- Render ---------------------------------- */
@@ -130,7 +122,7 @@ useEffect(() => {
         type="text"
         placeholder="Description / Item name"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         onFocus={() => suggestions.length && setOpen(true)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
@@ -138,30 +130,30 @@ useEffect(() => {
       />
 
       {open && suggestions.length > 0 && (
-        <div className="absolute z-30 mt-1 w-full rounded-lg border border-[#3a3a3a] bg-[#1f1f1f] shadow-xl max-h-48 overflow-y-auto">
-         {suggestions.map((item, idx) => {
-  const isActive = idx === highlightIndex;
-  return (
-    <button
-      key={item.name}
-      type="button"
-      onClick={() => selectSuggestion(item)}
-      onMouseEnter={() => setHighlightIndex(idx)} // ✅ highlight on hover
-      className={[
-        "block w-full text-left px-3 py-2 text-sm transition-colors",
-        "focus:outline-none", // no focus ring
-        isActive
-          ? "bg-[#374151] text-white" // ✅ highlight style
-          : "text-[#e5e5e5] hover:bg-[#2a2a2a] hover:text-white",
-      ].join(" ")}
-    >
-      <div className="font-medium">{item.name}</div>
-      <div className="text-xs text-[#9ca3af]">
-        {item.category} • {item.subCategory}
-      </div>
-    </button>
-  );
-})}
+        <div className="absolute z-30 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-[#3a3a3a] bg-[#1f1f1f] shadow-xl">
+          {suggestions.map((item, idx) => {
+            const isActive = idx === highlightIndex;
+            return (
+              <button
+                key={item.id ?? item.name}
+                type="button"
+                onClick={() => selectSuggestion(item)}
+                onMouseEnter={() => setHighlightIndex(idx)}
+                className={[
+                  "block w-full px-3 py-2 text-left text-sm transition-colors",
+                  "focus:outline-none",
+                  isActive
+                    ? "bg-[#374151] text-white"
+                    : "text-[#e5e5e5] hover:bg-[#2a2a2a] hover:text-white",
+                ].join(" ")}
+              >
+                <div className="font-medium">{item.name}</div>
+                <div className="text-xs text-[#9ca3af]">
+                  {item.category} • {item.subCategory}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
