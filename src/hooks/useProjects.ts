@@ -5,8 +5,6 @@ import { db } from "@/core/firebase";
 import {
   collection,
   doc,
-  getDoc,
-  getDocs,
   onSnapshot,
   query,
   orderBy,
@@ -16,6 +14,24 @@ import { z } from "zod";
 /* ────────────────────────────────
  * 1️⃣ ZOD SCHEMA
  * ──────────────────────────────── */
+const ProjectCEZ = z
+  .object({
+    carpentry: z.number().optional().default(0),
+    electrical: z.number().optional().default(0),
+    tiles: z.number().optional().default(0),
+    plumbing: z.number().optional().default(0),
+    paint: z.number().optional().default(0),
+    flooring: z.number().optional().default(0),
+    miscellaneous: z.number().optional().default(0),
+    toolsEquipment: z.number().optional().default(0),
+    ceiling: z.number().optional().default(0),
+    transport: z.number().optional().default(0),
+  })
+  // ✅ Instead of `.default({})`, use `.partial()` THEN `.default({})`
+  .partial()
+  .default({});
+
+
 export const ProjectZod = z.object({
   id: z.string(),
   name: z.string(),
@@ -26,7 +42,10 @@ export const ProjectZod = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   projectSize: z.string().optional(),
+  siteEngineer: z.string().optional().default(""), // 🆕 added
+  designer: z.string().optional().default(""),     // 🆕 added
   createdAt: z.number().optional(),
+  costEstimates: ProjectCEZ.optional().default({}),
 });
 
 export type Project = z.infer<typeof ProjectZod>;
@@ -131,3 +150,4 @@ export function useProject(projectId?: string): ProjectState {
 
   return { data, loading, error };
 }
+

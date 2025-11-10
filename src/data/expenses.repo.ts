@@ -1,17 +1,47 @@
-import { collection, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
-/**
- * Add a new expense document.
- * - Validates with Zod before writing.
- * - Uses Firestore path: expenses/{yyyyMM}/items/{expense.id}
- */
-export async function addExpense(yyyyMM: string, data: unknown): Promise<void> {
-  const parsed = ExpenseSchema.parse(data); // runtime validation
 
-  const ref = doc(db, "expenses", yyyyMM, "items", parsed.id);
-  await setDoc(ref, parsed, { merge: true });
+/* -------------------------------------------------------------------------- */
+/* 🧩 Helper: keep /metadata/expenseYears in sync                             */
+/* -------------------------------------------------------------------------- */
+async function updateExpenseYearsMetadata(yyyyMM: string): Promise<void> {
+  const year = Number(yyyyMM.slice(0, 4));
+  if (isNaN(year)) return;
+
+  const metaRef = doc(db, "metadata", "expenseYears");
+  const snap = await getDoc(metaRef);
+  const data = snap.exists() ? (snap.data() as { years?: number[] }) : {};
+  const years = Array.isArray(data.years) ? [...data.years] : [];
+
+  if (!years.includes(year)) {
+    years.push(year);
+    years.sort((a, b) => a - b);
+    await setDoc(metaRef, { years }, { merge: true });
+    console.log(`🧠 Added ${year} to /metadata/expenseYears`);
+  }
 }
+
+/* -------------------------------------------------------------------------- */
+/* 🧩 Add new expense (with year sync)                                        */
+/* -------------------------------------------------------------------------- */
+export async function addExpense(yyyyMM: string, data: unknown): Promise<void> {
+  const parsed = ExpenseSchema.parse(data);
+  const ref = doc(db, "expenses", yyyyMM, "items", parsed.id);
+
+  await setDoc(ref, parsed, { merge: true });
+
+  // 🧠 keep metadata up to date
+  await updateExpenseYearsMetadata(yyyyMM);
+}
+
 
 /**
  * Update an expense's paid status and optionally patch other fields.

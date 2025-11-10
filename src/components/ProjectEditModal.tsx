@@ -18,15 +18,19 @@ export default function ProjectEditModal({
   onSaved,
 }: ProjectEditModalProps) {
   const [draft, setDraft] = useState<Project>({
-    ...project,
-    team: project.team ?? "",
-    developer: project.developer ?? "",
-    city: project.city ?? "",
-    projectSize: project.projectSize ?? "",
-    startDate: project.startDate ?? "",
-    endDate: project.endDate ?? "",
-    createdAt: project.createdAt ?? Date.now(),
-  });
+  ...project,
+  team: project.team ?? "",
+  developer: project.developer ?? "",
+  city: project.city ?? "",
+  projectSize: project.projectSize ?? "",
+  siteEngineer: project.siteEngineer ?? "", // 🆕
+  designer: project.designer ?? "",         // 🆕
+  startDate: project.startDate ?? "",
+  endDate: project.endDate ?? "",
+  createdAt: project.createdAt ?? Date.now(),
+  projectCost: project.projectCost ?? 0,
+});
+
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +45,10 @@ export default function ProjectEditModal({
       projectSize: draft.projectSize?.trim() ?? "",
       startDate: draft.startDate?.trim() ?? "",
       endDate: draft.endDate?.trim() ?? "",
+      siteEngineer: draft.siteEngineer?.trim() ?? "",
+      designer: draft.designer?.trim() ?? "",
+      projectCost: draft.projectCost,
+
     }),
     [draft]
   );
@@ -164,6 +172,25 @@ export default function ProjectEditModal({
                 className="input-dark"
               />
             </FormField>
+
+            <FormField label="Site Engineer">
+  <Input
+    value={draft.siteEngineer ?? ""}
+    onChange={handleChange("siteEngineer")}
+    placeholder="Site engineer"
+    className="input-dark"
+  />
+</FormField>
+
+<FormField label="Designer">
+  <Input
+    value={draft.designer ?? ""}
+    onChange={handleChange("designer")}
+    placeholder="Designer"
+    className="input-dark"
+  />
+</FormField>
+
 
             <FormField label="Project Cost">
               <Input
