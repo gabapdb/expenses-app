@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAvailableExpenseYearsAndMonths } from "@/hooks/useAvailableExpenseYearsAndMonths";
 import ExpensesGrid from "@/components/ExpensesGrid";
@@ -11,10 +11,10 @@ import ExpensesGrid from "@/components/ExpensesGrid";
 export default function ExpensesPage({
   params,
 }: {
-  params: Promise<{ yyyyMM: string }>;
+  params: { yyyyMM: string };
 }) {
   const router = useRouter();
-  const { yyyyMM } = use(params);
+  const { yyyyMM } = params;
 
   const { info, latestYear, latestMonth, loading, error } =
     useAvailableExpenseYearsAndMonths();
@@ -71,15 +71,25 @@ export default function ExpensesPage({
 
   /* 🧠 Auto-jump when hook finishes loading -------------------------------- */
   useEffect(() => {
-    if (!loading && latestYear && latestMonth) {
-      queueMicrotask(() => {
-        setSelectedYear(latestYear);
-        setSelectedMonth(latestMonth.slice(4, 6));
-        router.push(`/expenses/${latestMonth}`);
-      });
+    if (loading || !latestYear || !latestMonth) {
+      return;
     }
+
+    const monthExists = info.some((yearInfo) =>
+      yearInfo.months.includes(yyyyMM)
+    );
+
+    if (monthExists || latestMonth === yyyyMM) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setSelectedYear(latestYear);
+      setSelectedMonth(latestMonth.slice(4, 6));
+      router.replace(`/expenses/${latestMonth}`);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, latestYear, latestMonth]);
+  }, [loading, latestYear, latestMonth, info, yyyyMM]);
 
   /* ------------------------------------------------------------------------ */
   /* 🖼️ Render                                                               */
