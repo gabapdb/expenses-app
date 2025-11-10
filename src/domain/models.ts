@@ -13,8 +13,13 @@ export const ProjectSchema = z.object({
   endDate: z.string().optional().default(""),
   projectSize: z.string().optional().default(""),
 
+  // 🆕 Added fields
+  siteEngineer: z.string().optional().default(""),
+  designer: z.string().optional().default(""),
+
   createdAt: z.number(),
 });
+/** Project type derived from schema */
 
 export type Project = z.infer<typeof ProjectSchema>;
 
@@ -47,3 +52,29 @@ export const ExpenseSchema = z.object({
 
 /** Expense type derived from schema */
 export type Expense = z.infer<typeof ExpenseSchema>;
+
+
+// ✨ NEW – safe extension for CE
+export const CostEstimatesZ = z
+.object({
+carpentry: z.number().optional().default(0),
+electrical: z.number().optional().default(0),
+tiles: z.number().optional().default(0),
+plumbing: z.number().optional().default(0),
+paint: z.number().optional().default(0),
+flooring: z.number().optional().default(0),
+miscellaneous: z.number().optional().default(0),
+toolsEquipment: z.number().optional().default(0),
+ceiling: z.number().optional().default(0),
+transport: z.number().optional().default(0),
+})
+.partial()
+.default({});
+
+
+export const ProjectWithCE = ProjectSchema.extend({
+costEstimates: CostEstimatesZ.optional().default({}),
+});
+
+
+export type ProjectWithCEType = z.infer<typeof ProjectWithCE>;

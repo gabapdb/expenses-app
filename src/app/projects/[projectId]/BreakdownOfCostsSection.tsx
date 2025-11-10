@@ -1,20 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useProjectExpenseBreakdown } from "@/hooks/useProjectExpenseBreakdown";
-import { peso } from "@/utils/expenses";
+import { useProject } from "@/hooks/useProjects";
+import { updateProjectCE } from "@/data/projects.repo.ce";
+import { peso, pct } from "@/utils/format";
 import { RotateCw } from "lucide-react";
 
+/* -------------------------------------------------------------------------- */
+/* Types & constants                                                          */
+/* -------------------------------------------------------------------------- */
 interface BreakdownOfCostsSectionProps {
   projectId: string;
 }
 
-export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsSectionProps) {
-  const { data, totalAmount, loading, error, refetch } =
-    useProjectExpenseBreakdown(projectId);
-  const [lastUpdated, setLastUpdated] = useState<string>("");
+type TabKey = "cabinets" | "materials" | "transport";
 
-  const handleRefresh = async () => {
+type TradeKey =
+  | "carpentry"
+  | "electrical"
+  | "tiles"
+  | "plumbing"
+  | "paint"
+  | "ceiling"
+  | "flooring"
+  | "miscellaneous"
+  | "toolsEquipment"
+  | "transport";
+
+const MATERIAL_TRADES: TradeKey[] = [
+  "electrical",
+  "tiles",
+  "plumbing",
+  "paint",
+  "ceiling",
+  "flooring",
+  "miscellaneous",
+  "toolsEquipment",
+];
+
+const toLower = (s: unknown) => (typeof s === "string" ? s.toLowerCase() : "");
+
+/* -------------------------------------------------------------------------- */
+/* Component                                                                  */
+/* -------------------------------------------------------------------------- */
+export default function BreakdownOfCostsSection({
+  projectId,
+}: BreakdownOfCostsSectionProps) {
+  const { data, loading, refetch } = useProjectExpenseBreakdown(projectId);
+  const { data: project } = useProject(projectId);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("cabinets");
+  const [editingKey, setEditingKey] = useState<TradeKey | null>(null);
+  const [draft, setDraft] = useState<number>(0);
+  const [savingKey, setSavingKey] = useState<TradeKey | null>(null);
+  const [lastUpdated, setLastUpdated] = useState("");
+
+  const ce = project?.costEstimates ?? {};
+
+  const refresh = async () => {
     await refetch();
     setLastUpdated(
       new Date().toLocaleString("en-PH", {
@@ -26,20 +70,129 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
     );
   };
 
+  const saveCE = async (key: TradeKey, value: number) => {
+    try {
+      setSavingKey(key);
+      await updateProjectCE(projectId, { [key]: value });
+    } finally {
+      setSavingKey(null);
+      setEditingKey(null);
+    }
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /* Helpers                                                                  */
+  /* ------------------------------------------------------------------------ */
+  const sumWhere = (pred: (cat: string, sub: string) => boolean) =>
+    data.reduce((sum, r) => {
+      const cat = toLower(r.category);
+      const sub = toLower(r.subCategory);
+      return pred(cat, sub) ? sum + (r.total ?? 0) : sum;
+    }, 0);
+
+  /* ------------------------------------------------------------------------ */
+  /* CABINETS                                                                 */
+  /* ------------------------------------------------------------------------ */
+  const cabBoards = sumWhere((cat, sub) => cat === "cabinets" && sub === "boards");
+  const cabLaminate = sumWhere((cat, sub) => cat === "cabinets" && sub === "laminate");
+  const cabRugby = sumWhere((cat, sub) => cat === "cabinets" && sub === "rugby");
+  const cabAccessories = sumWhere(
+    (cat, sub) => cat === "cabinets" && sub === "accessories"
+  );
+  const cabLabor = sumWhere((cat, sub) => cat === "salary" && sub === "carpentry");
+  const cabTotal = cabBoards + cabLaminate + cabRugby + cabAccessories + cabLabor;
+  const cabCE = ce.carpentry ?? 0;
+  const cabProfit = Math.max(0, cabCE - cabTotal);
+  const cabPct = cabCE > 0 ? (cabProfit / cabCE) * 100 : 0;
+
+  /* ------------------------------------------------------------------------ */
+  /* MATERIALS                                                                */
+  /* ------------------------------------------------------------------------ */
+  const materialsByTrade = useMemo(() => {
+    const emptyRecord = (): Record<TradeKey, number> =>
+      Object.fromEntries(MATERIAL_TRADES.map((t) => [t, 0])) as Record<
+        TradeKey,
+        number
+      >;
+
+    const mats = emptyRecord();
+    const sal = emptyRecord();
+
+    for (const r of data) {
+      const cat = toLower(r.category);
+      const sub = toLower(r.subCategory);
+      const amt = r.total ?? 0;
+
+      let trade: TradeKey | null = null;
+      if (sub.includes("electric")) trade = "electrical";
+      else if (sub.includes("tile")) trade = "tiles";
+      else if (sub.includes("plumb")) trade = "plumbing";
+      else if (sub.includes("paint")) trade = "paint";
+      else if (sub.includes("ceil")) trade = "ceiling";
+      else if (sub.includes("floor")) trade = "flooring";
+      else if (sub.includes("misc")) trade = "miscellaneous";
+      else if (sub.includes("tool")) trade = "toolsEquipment";
+      if (!trade) continue;
+
+      const isIgnoredSalary =
+        cat === "salary" &&
+        (sub === "labor" ||
+          sub === "engineer" ||
+          sub.includes("mandatory") ||
+          sub === "cabinets");
+      if (isIgnoredSalary) continue;
+
+      if (cat === "materials") mats[trade] += amt;
+      if (cat === "salary" && trade !== "toolsEquipment") sal[trade] += amt;
+    }
+
+    return { mats, sal };
+  }, [data]);
+
+  const matTotalsRow = useMemo(() => {
+    let matsSum = 0;
+    let salSum = 0;
+    let ceSum = 0;
+    let profitSum = 0;
+
+    MATERIAL_TRADES.forEach((t) => {
+      const rowTotal = (materialsByTrade.mats[t] ?? 0) + (materialsByTrade.sal[t] ?? 0);
+      const ceVal = ce[t] ?? 0;
+      const profit = Math.max(0, ceVal - rowTotal);
+      matsSum += materialsByTrade.mats[t] ?? 0;
+      salSum += materialsByTrade.sal[t] ?? 0;
+      ceSum += ceVal;
+      profitSum += profit;
+    });
+
+    const percent = ceSum > 0 ? (profitSum / ceSum) * 100 : 0;
+    return { matsSum, salSum, ceSum, profitSum, percent };
+  }, [materialsByTrade, ce]);
+
+  /* ------------------------------------------------------------------------ */
+  /* TRANSPORT                                                                */
+  /* ------------------------------------------------------------------------ */
+  const transHauling = sumWhere((cat, sub) => cat === "transport" && sub === "hauling");
+  const transDelivery = sumWhere((cat, sub) => cat === "transport" && sub === "delivery");
+  const transTotal = transHauling + transDelivery;
+  const transCE = ce.transport ?? 0;
+  const transProfit = Math.max(0, transCE - transTotal);
+  const transPct = transCE > 0 ? (transProfit / transCE) * 100 : 0;
+
+  /* ------------------------------------------------------------------------ */
+  /* Render                                                                   */
+  /* ------------------------------------------------------------------------ */
   return (
-    <section className="space-y-4">
+    <section className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[#3a3a3a] pb-2">
         <h2 className="text-lg font-semibold text-[#e5e5e5]">Breakdown of Costs</h2>
-
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-xs text-[#9ca3af]">
-              Last updated: {lastUpdated}
-            </span>
+            <span className="text-xs text-[#9ca3af]">Last updated: {lastUpdated}</span>
           )}
           <button
-            onClick={handleRefresh}
+            onClick={refresh}
             disabled={loading}
             className="flex items-center gap-2 text-sm text-[#d1d5db] hover:text-white transition disabled:opacity-50"
           >
@@ -49,45 +202,242 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
         </div>
       </div>
 
-      {/* States */}
-      {loading && <div className="text-[#9ca3af] text-sm">Loading breakdown…</div>}
-      {error && <div className="text-[#f87171] text-sm">{error}</div>}
-      {!loading && !error && !data.length && (
-        <div className="text-[#9ca3af] text-sm">No expenses yet.</div>
-      )}
+      {/* Tabs */}
+      <div className="flex gap-4 border-b border-[#3a3a3a]">
+        {(["cabinets", "materials", "transport"] as TabKey[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            className={`px-2 py-2 text-sm -mb-px border-b-2 transition ${
+              activeTab === t
+                ? "border-white text-white"
+                : "border-transparent text-[#9ca3af] hover:text-[#e5e5e5]"
+            }`}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
+      </div>
 
-      {/* Table */}
-      {!loading && !error && data.length > 0 && (
+      {/* CABINETS */}
+      {activeTab === "cabinets" && (
         <div className="border border-[#3a3a3a] rounded-xl overflow-x-auto bg-[#1f1f1f]">
-          <table className="min-w-full border-collapse text-sm text-[#d1d5db]">
+          <table className="min-w-full text-sm text-[#d1d5db] border-collapse">
             <thead className="bg-[#262626] border-b border-[#3a3a3a]">
               <tr>
-                <th className="p-3 font-medium text-left">Category</th>
-                <th className="p-3 font-medium text-left">Subcategory</th>
-                <th className="p-3 font-medium text-right">Total</th>
-                <th className="p-3 font-medium text-right">% of Total</th>
+                <th className="px-4 py-2 text-left text-sm font-medium">Subcategory</th>
+                <th className="px-4 py-2 text-right text-sm font-medium">Total</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((row) => {
-                const pct = totalAmount > 0 ? (row.total / totalAmount) * 100 : 0;
+              {[
+                ["Boards", cabBoards],
+                ["Laminate", cabLaminate],
+                ["Rugby", cabRugby],
+                ["Accessories", cabAccessories],
+                ["Labor", cabLabor],
+              ].map(([label, val]) => (
+                <tr key={label as string} className="border-b border-[#3a3a3a]">
+                  <td className="px-4 py-[6px]">{label}</td>
+                  <td className="px-4 py-[6px] text-right">{peso(val as number)}</td>
+                </tr>
+              ))}
+              <tr className="bg-[#2a2a2a] font-semibold">
+                <td className="px-4 py-2">Total</td>
+                <td className="px-4 py-2 text-right">{peso(cabTotal)}</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 text-[#9ca3af]">CE</td>
+                <td
+                  className="px-4 py-2 text-right cursor-pointer rounded-md"
+                  onClick={() => {
+                    setEditingKey("carpentry");
+                    setDraft(cabCE);
+                  }}
+                >
+                  {editingKey === "carpentry" ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="decimal"
+                      value={draft}
+                      onChange={(e) =>
+                        setDraft(Number(e.target.value.replace(/[₱,]/g, "")) || 0)
+                      }
+                      onBlur={() => saveCE("carpentry", draft)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveCE("carpentry", draft);
+                        if (e.key === "Escape") setEditingKey(null);
+                      }}
+                      className="w-[8rem] text-right bg-[#262626] border border-[#3a3a3a] rounded-md px-3 py-[6px] focus:outline-none focus:ring-1 focus:ring-[#4b5563]"
+                    />
+                  ) : (
+                    peso(cabCE)
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 text-[#9ca3af]">Profit</td>
+                <td className="px-4 py-2 text-right">{peso(cabProfit)}</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 text-[#9ca3af]">% Profit</td>
+                <td className="px-4 py-2 text-right">{pct(cabPct)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* MATERIALS */}
+      {activeTab === "materials" && (
+        <div className="border border-[#3a3a3a] rounded-xl overflow-x-auto bg-[#1f1f1f]">
+          <table className="min-w-full text-sm text-[#d1d5db] border-collapse">
+            <thead className="bg-[#262626] border-b border-[#3a3a3a]">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium">Trade</th>
+                <th className="px-4 py-2 text-right font-medium">Materials</th>
+                <th className="px-4 py-2 text-right font-medium">Salary</th>
+                <th className="px-4 py-2 text-right font-medium">Total</th>
+                <th className="px-4 py-2 text-right font-medium">CE</th>
+                <th className="px-4 py-2 text-right font-medium">Profit</th>
+                <th className="px-4 py-2 text-right font-medium">% Profit</th>
+              </tr>
+            </thead>
+            <tbody>
+              {MATERIAL_TRADES.map((trade) => {
+                const mats = materialsByTrade.mats[trade] ?? 0;
+                const sal = materialsByTrade.sal[trade] ?? 0;
+                const rowTotal = mats + sal;
+                const ceVal = ce[trade] ?? 0;
+                const profit = Math.max(0, ceVal - rowTotal);
+                const percent = ceVal > 0 ? (profit / ceVal) * 100 : 0;
+                const label =
+                  trade === "toolsEquipment"
+                    ? "Tools and Equipment"
+                    : trade.charAt(0).toUpperCase() + trade.slice(1);
+
                 return (
-                  <tr
-                    key={`${row.category}-${row.subCategory}`}
-                    className="border-b border-[#3a3a3a] last:border-0 hover:bg-[#2a2a2a]/60 transition-colors"
-                  >
-                    <td className="p-3">{row.category}</td>
-                    <td className="p-3">{row.subCategory}</td>
-                    <td className="p-3 text-right">{peso(row.total)}</td>
-                    <td className="p-3 text-right">{pct.toFixed(1)}%</td>
+                  <tr key={trade} className="border-b border-[#3a3a3a]">
+                    <td className="px-4 py-[6px]">{label}</td>
+                    <td className="px-4 py-[6px] text-right">{peso(mats)}</td>
+                    <td className="px-4 py-[6px] text-right">{peso(sal)}</td>
+                    <td className="px-4 py-[6px] text-right">{peso(rowTotal)}</td>
+                    <td
+                      className="px-4 py-[6px] text-right cursor-pointer rounded-md"
+                      onClick={() => {
+                        setEditingKey(trade);
+                        setDraft(ceVal);
+                      }}
+                    >
+                      {editingKey === trade ? (
+                        <input
+                          autoFocus
+                          type="text"
+                          inputMode="decimal"
+                          value={draft}
+                          onChange={(e) =>
+                            setDraft(Number(e.target.value.replace(/[₱,]/g, "")) || 0)
+                          }
+                          onBlur={() => saveCE(trade, draft)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveCE(trade, draft);
+                            if (e.key === "Escape") setEditingKey(null);
+                          }}
+                          className="w-[8rem] text-right bg-[#262626] border border-[#3a3a3a] rounded-md px-3 py-[6px] focus:outline-none focus:ring-1 focus:ring-[#4b5563]"
+                        />
+                      ) : (
+                        peso(ceVal)
+                      )}
+                    </td>
+                    <td className="px-4 py-[6px] text-right">{peso(profit)}</td>
+                    <td className="px-4 py-[6px] text-right">{pct(percent)}</td>
                   </tr>
                 );
               })}
-              <tr className="bg-[#2a2a2a] font-semibold border-t border-[#3a3a3a]">
-                <td className="p-3">TOTAL</td>
-                <td className="p-3">—</td>
-                <td className="p-3 text-right">{peso(totalAmount)}</td>
-                <td className="p-3 text-right">100%</td>
+              <tr className="bg-[#2a2a2a] font-semibold">
+                <td className="px-4 py-2">TOTAL</td>
+                <td className="px-4 py-2 text-right">
+                  {peso(matTotalsRow.matsSum)}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  {peso(matTotalsRow.salSum)}
+                </td>
+                <td className="px-4 py-2 text-right">
+                  {peso(matTotalsRow.matsSum + matTotalsRow.salSum)}
+                </td>
+                <td className="px-4 py-2 text-right">{peso(matTotalsRow.ceSum)}</td>
+                <td className="px-4 py-2 text-right">
+                  {peso(matTotalsRow.profitSum)}
+                </td>
+                <td className="px-4 py-2 text-right">{pct(matTotalsRow.percent)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* TRANSPORT */}
+      {activeTab === "transport" && (
+        <div className="border border-[#3a3a3a] rounded-xl overflow-x-auto bg-[#1f1f1f]">
+          <table className="min-w-full text-sm text-[#d1d5db] border-collapse">
+            <thead className="bg-[#262626] border-b border-[#3a3a3a]">
+              <tr>
+                <th className="px-4 py-2 text-left font-medium">Subcategory</th>
+                <th className="px-4 py-2 text-right font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["Hauling", transHauling],
+                ["Delivery", transDelivery],
+              ].map(([label, val]) => (
+                <tr key={label as string} className="border-b border-[#3a3a3a]">
+                  <td className="px-4 py-[6px]">{label}</td>
+                  <td className="px-4 py-[6px] text-right">{peso(val as number)}</td>
+                </tr>
+              ))}
+                            <tr className="bg-[#2a2a2a] font-semibold">
+                <td className="px-4 py-2">Total</td>
+                <td className="px-4 py-2 text-right">{peso(transTotal)}</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 text-[#9ca3af]">CE</td>
+                <td
+                  className="px-4 py-2 text-right cursor-pointer rounded-md"
+                  onClick={() => {
+                    setEditingKey("transport");
+                    setDraft(transCE);
+                  }}
+                >
+                  {editingKey === "transport" ? (
+                    <input
+                      autoFocus
+                      type="text"
+                      inputMode="decimal"
+                      value={draft}
+                      onChange={(e) =>
+                        setDraft(Number(e.target.value.replace(/[₱,]/g, "")) || 0)
+                      }
+                      onBlur={() => saveCE("transport", draft)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveCE("transport", draft);
+                        if (e.key === "Escape") setEditingKey(null);
+                      }}
+                      className="w-[8rem] text-right bg-[#262626] border border-[#3a3a3a] rounded-md px-3 py-[6px] focus:outline-none focus:ring-1 focus:ring-[#4b5563]"
+                    />
+                  ) : (
+                    peso(transCE)
+                  )}
+                </td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 text-[#9ca3af]">Profit</td>
+                <td className="px-4 py-2 text-right">{peso(transProfit)}</td>
+              </tr>
+              <tr>
+                <td className="px-4 py-2 text-[#9ca3af]">% Profit</td>
+                <td className="px-4 py-2 text-right">{pct(transPct)}</td>
               </tr>
             </tbody>
           </table>
@@ -96,3 +446,4 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
     </section>
   );
 }
+

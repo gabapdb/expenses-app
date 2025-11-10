@@ -5,7 +5,6 @@ import Button from "@/components/ui/Button";
 import { uuid } from "@/utils/id";
 import { ProjectSchema, type Project } from "@/domain/models";
 import { upsertProject } from "@/data/projects.repo";
-import { z } from "zod";
 import { getFirstZodError } from "@/utils/zodHelpers";
 
 export default function ProjectForm({ onSaved }: { onSaved?: () => void }) {
@@ -31,17 +30,19 @@ export default function ProjectForm({ onSaved }: { onSaved?: () => void }) {
         startDate: values.startDate || "",
         endDate: values.endDate || "",
         projectSize: values.projectSize || "",
+        siteEngineer: values.siteEngineer || "",   // 🆕
+        designer: values.designer || "",           // 🆕
         createdAt: Date.now(),
       });
       await upsertProject(parsed);
       setValues({});
       onSaved?.();
     } catch (err) {
-  const first = getFirstZodError(err);
-  setError(first ?? "Please fill all required fields.");
-} finally {
-  setSaving(false);
-}
+      const first = getFirstZodError(err);
+      setError(first ?? "Please fill all required fields.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -55,7 +56,12 @@ export default function ProjectForm({ onSaved }: { onSaved?: () => void }) {
       <Input name="startDate" placeholder="Start Date (YYYY-MM-DD)" value={values.startDate ?? ""} onChange={handleChange} />
       <Input name="endDate" placeholder="End Date (YYYY-MM-DD)" value={values.endDate ?? ""} onChange={handleChange} />
       <Input name="projectSize" placeholder="Project Size" value={values.projectSize ?? ""} onChange={handleChange} />
-      <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Add Project"}</Button>
+      {/* 🆕 new fields */}
+      <Input name="siteEngineer" placeholder="Site Engineer" value={values.siteEngineer ?? ""} onChange={handleChange} />
+      <Input name="designer" placeholder="Designer" value={values.designer ?? ""} onChange={handleChange} />
+      <Button type="submit" disabled={saving}>
+        {saving ? "Saving..." : "Add Project"}
+      </Button>
     </form>
   );
 }

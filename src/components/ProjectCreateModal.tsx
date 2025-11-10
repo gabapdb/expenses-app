@@ -20,6 +20,8 @@ interface DraftProject {
   startDate: string;
   endDate: string;
   projectSize: string;
+  siteEngineer: string; // 🆕
+  designer: string;     // 🆕
 }
 
 const initialDraft: DraftProject = {
@@ -31,7 +33,10 @@ const initialDraft: DraftProject = {
   startDate: "",
   endDate: "",
   projectSize: "",
+  siteEngineer: "",
+  designer: "",
 };
+
 
 function generateProjectId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -59,6 +64,9 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
       startDate: draft.startDate.trim(),
       endDate: draft.endDate.trim(),
       projectCost: draft.projectCost.trim(),
+      siteEngineer: draft.siteEngineer.trim(),
+      designer: draft.designer.trim(),
+
     }),
     [draft]
   );
@@ -88,17 +96,20 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
 
     try {
       const payload: Project = {
-        id: generateProjectId(),
-        name: trimmed.name,
-        team: trimmed.team,
-        projectCost: Number(trimmed.projectCost) || 0,
-        developer: trimmed.developer,
-        city: trimmed.city,
-        startDate: trimmed.startDate,
-        endDate: trimmed.endDate,
-        projectSize: trimmed.projectSize,
-        createdAt: Date.now(),
-      };
+  id: generateProjectId(),
+  name: trimmed.name,
+  team: trimmed.team,
+  projectCost: Number(trimmed.projectCost) || 0,
+  developer: trimmed.developer,
+  city: trimmed.city,
+  startDate: trimmed.startDate,
+  endDate: trimmed.endDate,
+  projectSize: trimmed.projectSize,
+  siteEngineer: trimmed.siteEngineer,
+  designer: trimmed.designer,
+  createdAt: Date.now(),
+};
+
 
       await upsertProject(payload);
       setDraft(initialDraft);
@@ -192,6 +203,25 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
                 className="input-dark"
               />
             </FormField>
+
+            <FormField label="Site Engineer">
+  <Input
+    value={draft.siteEngineer ?? ""}
+    onChange={handleChange("siteEngineer")}
+    placeholder="Site engineer name"
+    className="input-dark"
+  />
+</FormField>
+
+<FormField label="Designer">
+  <Input
+    value={draft.designer ?? ""}
+    onChange={handleChange("designer")}
+    placeholder="Designer name"
+    className="input-dark"
+  />
+</FormField>
+
 
             <FormField label="Project Cost">
               <Input
