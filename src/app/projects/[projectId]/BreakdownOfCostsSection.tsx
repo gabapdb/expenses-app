@@ -29,19 +29,19 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
   return (
     <section className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-2">
-        <h2 className="text-lg font-semibold">Breakdown of Costs</h2>
+      <div className="flex items-center justify-between border-b border-[#3a3a3a] pb-2">
+        <h2 className="text-lg font-semibold text-[#e5e5e5]">Breakdown of Costs</h2>
 
         <div className="flex items-center gap-3">
           {lastUpdated && (
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[#9ca3af]">
               Last updated: {lastUpdated}
             </span>
           )}
           <button
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2 text-sm text-gray-700 hover:text-black transition disabled:opacity-50"
+            className="flex items-center gap-2 text-sm text-[#d1d5db] hover:text-white transition disabled:opacity-50"
           >
             <RotateCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             {loading ? "Refreshing…" : "Refresh"}
@@ -50,22 +50,22 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
       </div>
 
       {/* States */}
-      {loading && <div className="text-gray-500 text-sm">Loading breakdown…</div>}
-      {error && <div className="text-red-500 text-sm">{error}</div>}
+      {loading && <div className="text-[#9ca3af] text-sm">Loading breakdown…</div>}
+      {error && <div className="text-[#f87171] text-sm">{error}</div>}
       {!loading && !error && !data.length && (
-        <div className="text-gray-500 text-sm">No expenses yet.</div>
+        <div className="text-[#9ca3af] text-sm">No expenses yet.</div>
       )}
 
       {/* Table */}
       {!loading && !error && data.length > 0 && (
-        <div className="border border-gray-200 rounded-lg overflow-x-auto">
-          <table className="min-w-full border-collapse text-sm">
-            <thead className="bg-gray-50 text-left border-b">
+        <div className="border border-[#3a3a3a] rounded-xl overflow-x-auto bg-[#1f1f1f]">
+          <table className="min-w-full border-collapse text-sm text-[#d1d5db]">
+            <thead className="bg-[#262626] border-b border-[#3a3a3a]">
               <tr>
-                <th className="p-2 font-medium">Category</th>
-                <th className="p-2 font-medium">Subcategory</th>
-                <th className="p-2 font-medium text-right">Total</th>
-                <th className="p-2 font-medium text-right">% of Total</th>
+                <th className="p-3 font-medium text-left">Category</th>
+                <th className="p-3 font-medium text-left">Subcategory</th>
+                <th className="p-3 font-medium text-right">Total</th>
+                <th className="p-3 font-medium text-right">% of Total</th>
               </tr>
             </thead>
             <tbody>
@@ -74,20 +74,20 @@ export default function BreakdownOfCostsSection({ projectId }: BreakdownOfCostsS
                 return (
                   <tr
                     key={`${row.category}-${row.subCategory}`}
-                    className="border-b last:border-0"
+                    className="border-b border-[#3a3a3a] last:border-0 hover:bg-[#2a2a2a]/60 transition-colors"
                   >
-                    <td className="p-2">{row.category}</td>
-                    <td className="p-2">{row.subCategory}</td>
-                    <td className="p-2 text-right">{peso(row.total)}</td>
-                    <td className="p-2 text-right">{pct.toFixed(1)}%</td>
+                    <td className="p-3">{row.category}</td>
+                    <td className="p-3">{row.subCategory}</td>
+                    <td className="p-3 text-right">{peso(row.total)}</td>
+                    <td className="p-3 text-right">{pct.toFixed(1)}%</td>
                   </tr>
                 );
               })}
-              <tr className="bg-gray-50 font-semibold">
-                <td className="p-2">TOTAL</td>
-                <td className="p-2">—</td>
-                <td className="p-2 text-right">{peso(totalAmount)}</td>
-                <td className="p-2 text-right">100%</td>
+              <tr className="bg-[#2a2a2a] font-semibold border-t border-[#3a3a3a]">
+                <td className="p-3">TOTAL</td>
+                <td className="p-3">—</td>
+                <td className="p-3 text-right">{peso(totalAmount)}</td>
+                <td className="p-3 text-right">100%</td>
               </tr>
             </tbody>
           </table>

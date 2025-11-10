@@ -1,33 +1,22 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import Sidebar from "@/components/layout/Sidebar";
-import ExpandablePanel from "@/components/layout/ExpandablePanel";
+import { useState } from "react";
+import Sidebar from "./Sidebar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const handleEnter = useCallback(() => setExpanded(true), []);
-  const handleLeave = useCallback(() => setExpanded(false), []);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   return (
-    <div
-      className="relative flex h-screen w-full overflow-hidden bg-[#0f0f12] text-gray-100 transition-colors"
-      onMouseLeave={handleLeave}
-    >
-      {/* Sidebar */}
-      <div className="relative z-30 flex-shrink-0" style={{ width: 72 }}>
-        <Sidebar expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
-      </div>
+    <div className="relative h-screen overflow-hidden">
+      <Sidebar
+        expanded={isSidebarExpanded}
+        onEnter={() => setIsSidebarExpanded(true)}
+        onLeave={() => setIsSidebarExpanded(false)}
+      />
 
-      {/* Expandable Panel */}
-      <ExpandablePanel expanded={expanded} onEnter={handleEnter} onLeave={handleLeave} />
-
-      {/* Main Content */}
-      <main className="relative flex-1 overflow-y-auto">
-        <div className="min-h-screen rounded-l-[36px] border border-white/5 bg-[#16161a]/95 p-8 shadow-[0_24px_60px_rgba(10,10,20,0.65)] backdrop-blur-lg transition-all duration-300">
-          {children}
-        </div>
+      {/* ✅ Remove any ml-* margin — sidebar now overlays */}
+      <main className="relative h-full overflow-y-auto transition-all duration-300 pl-16">
+        {children}
       </main>
     </div>
   );

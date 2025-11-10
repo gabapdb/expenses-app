@@ -6,6 +6,7 @@ import { uuid } from "@/utils/id";
 import { ProjectSchema, type Project } from "@/domain/models";
 import { upsertProject } from "@/data/projects.repo";
 import { z } from "zod";
+import { getFirstZodError } from "@/utils/zodHelpers";
 
 export default function ProjectForm({ onSaved }: { onSaved?: () => void }) {
   const [values, setValues] = useState<Partial<Project>>({});
@@ -36,10 +37,11 @@ export default function ProjectForm({ onSaved }: { onSaved?: () => void }) {
       setValues({});
       onSaved?.();
     } catch (err) {
-      if (err instanceof z.ZodError) setError("Please fill all required fields.");
-    } finally {
-      setSaving(false);
-    }
+  const first = getFirstZodError(err);
+  setError(first ?? "Please fill all required fields.");
+} finally {
+  setSaving(false);
+}
   };
 
   return (

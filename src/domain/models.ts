@@ -1,17 +1,21 @@
 import { z } from "zod";
 
 export const ProjectSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  team: z.string().min(1),
-  projectCost: z.number().nonnegative(),
-  developer: z.string().min(1),
-  city: z.string().min(1),
-  startDate: z.string(), // ISO
-  endDate: z.string(), // ISO
-  projectSize: z.string(),
+  id: z.string(),
+  name: z.string().min(1, "Project name is required"),
+  team: z.string().min(1, "Team is required"),
+  projectCost: z.number().nonnegative("Project cost must be 0 or higher"),
+
+  // Optional fields
+  developer: z.string().optional().default(""),
+  city: z.string().optional().default(""),
+  startDate: z.string().optional().default(""),
+  endDate: z.string().optional().default(""),
+  projectSize: z.string().optional().default(""),
+
   createdAt: z.number(),
 });
+
 export type Project = z.infer<typeof ProjectSchema>;
 
 export const ExpenseSchema = z.object({

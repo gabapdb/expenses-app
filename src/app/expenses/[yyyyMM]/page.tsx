@@ -1,13 +1,15 @@
 "use client";
 
+import { use } from "react";
 import ExpensesGrid from "@/components/ExpensesGrid";
 
 export default function ExpensesPage({
   params,
 }: {
-  params: { yyyyMM: string };
+  params: Promise<{ yyyyMM: string }>;
 }) {
-  const yyyyMM = params.yyyyMM;
+  // ✅ unwrap the async params
+  const { yyyyMM } = use(params);
 
   return (
     <main className="p-6 space-y-6">
