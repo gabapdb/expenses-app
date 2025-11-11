@@ -1,9 +1,13 @@
 "use client";
 
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
+=======
+import { useEffect, useState } from "react";
+>>>>>>> 08e0677b8c456a58e7bad590d8208d5650b7ef85
 import { useRouter } from "next/navigation";
-import { useAvailableExpenseYearsAndMonths } from "@/hooks/useAvailableExpenseYearsAndMonths";
-import ExpensesGrid from "@/components/ExpensesGrid";
+import { useAvailableExpenseYearsAndMonths } from "@/hooks/expenses/useAvailableExpenseYearsAndMonths";
+import ExpensesGrid from "@/features/expenses/components/ExpensesGrid";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Page Component                                                          */
@@ -45,29 +49,6 @@ export default function ExpensesPage({
     setSelectedMonth(latestForYear.slice(4, 6));
     router.push(`/expenses/${latestForYear}`);
   };
-
-  /* 🗓️ Build month list ---------------------------------------------------- */
-  const months = useMemo(() => {
-    const found = info.find((y) => y.year === selectedYear);
-    if (found?.months?.length) {
-      return found.months.map((m) => ({
-        name: new Date(
-          Number(m.slice(0, 4)),
-          Number(m.slice(4, 6)) - 1
-        ).toLocaleString("default", { month: "long" }),
-        value: m,
-      }));
-    }
-
-    // fallback to all months if none loaded
-    return Array.from({ length: 12 }, (_, idx) => {
-      const mm = String(idx + 1).padStart(2, "0");
-      return {
-        name: new Date(0, idx).toLocaleString("default", { month: "long" }),
-        value: `${selectedYear}${mm}`,
-      };
-    });
-  }, [info, selectedYear]);
 
   /* 🧠 Auto-jump when hook finishes loading -------------------------------- */
   useEffect(() => {

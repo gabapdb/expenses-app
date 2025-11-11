@@ -2,11 +2,11 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { useProject } from "@/hooks/useProjects";
+import { useProject } from "@/hooks/projects/useProjects";
 import ProjectInfoSection from "./ProjectInfoSection";
 import MonthlyExpensesSection from "./MonthlyExpensesSection";
 import BreakdownOfCostsSection from "./BreakdownOfCostsSection";
-import RequirementsSection from "@/components/requirements/RequirementsSection";
+import RequirementsSection from "@/features/requirements/components/RequirementsSection";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Component                                                               */

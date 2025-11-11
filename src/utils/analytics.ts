@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import { ExpenseSchema } from "@/domain/models";
 
 // Define array schema for runtime validation
 const ExpensesArraySchema = z.array(ExpenseSchema);

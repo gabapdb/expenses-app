@@ -16,12 +16,11 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import { useRealtimeExpenses } from "@/hooks/useRealtimeExpenses";
+import { useRealtimeExpenses } from "@/hooks/expenses/useRealtimeExpenses";
 import { peso } from "@/utils/format";
-import { compareExpensesByPaymentDate } from "@/utils/expenses";
 
 const quickPrompts = [
   "Summarize this month’s spending",
@@ -33,7 +32,7 @@ const quickPrompts = [
 export default function HomePage() {
   const now = new Date();
   const currentMonthId = format(now, "yyyyMM");
-  const { data: expenses, loading } = useRealtimeExpenses(currentMonthId);
+  const { data: expenses } = useRealtimeExpenses(currentMonthId);
 
   const navItems = [
     { label: "Home", href: "/", icon: Home },
@@ -80,36 +79,6 @@ export default function HomePage() {
       paidCount: paid.length,
       outstandingCount: outstanding.length,
     };
-  }, [expenses]);
-
-  const upcomingExpenses = useMemo(() => {
-    return expenses
-      .filter((e) => !e.paid && e.invoiceDate)
-      .map((e) => {
-        const invoiceDate = parseISO(e.invoiceDate);
-        if (Number.isNaN(invoiceDate.getTime())) return null;
-        return { expense: e, invoiceDate };
-      })
-      .filter((x): x is { expense: typeof expenses[number]; invoiceDate: Date } => !!x)
-      .sort((a, b) => a.invoiceDate.getTime() - b.invoiceDate.getTime())
-      .slice(0, 4);
-  }, [expenses]);
-
-  const topCategories = useMemo(() => {
-    const totals = new Map<string, number>();
-    expenses.forEach((e) => {
-      const key = `${e.category} • ${e.subCategory}`;
-      totals.set(key, (totals.get(key) ?? 0) + (Number(e.amount) || 0));
-    });
-    return Array.from(totals.entries()).sort(([, a], [, b]) => b - a).slice(0, 3);
-  }, [expenses]);
-
-  const recentPaid = useMemo(() => {
-    return expenses
-      .filter((e) => e.paid && e.datePaid)
-      .slice()
-      .sort((a, b) => compareExpensesByPaymentDate(b, a))
-      .slice(0, 4);
   }, [expenses]);
 
   return (

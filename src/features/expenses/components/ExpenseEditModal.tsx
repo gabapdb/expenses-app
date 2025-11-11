@@ -2,16 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { doc, setDoc, writeBatch } from "firebase/firestore";
-import { z } from "zod";
 import { db } from "@/core/firebase";
 import { ExpenseSchema, type Expense } from "@/domain/models";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import { isoDateToYYYYMM } from "@/utils/time";
-import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
+import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import { getFirstZodError } from "@/utils/zodHelpers";
 import { useAutoCategorize } from "@/utils/autoCategorize"; // 🧩 NEW
-import DetailsAutocomplete from "@/components/DetailsAutocomplete"; // 🧩 NEW
+import DetailsAutocomplete from "@/features/expenses/components/DetailsAutocomplete"; // 🧩 NEW
 
 interface ExpenseEditModalProps {
   yyyyMM: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRequirements } from "@/hooks/useRequirements";
+import { useRequirements } from "@/hooks/requirements/useRequirements";
 import RequirementsTable from "./RequirementsTable";
 import AddRequirementForm from "./AddRequirementForm";
 import RequirementEditModal from "./RequirementEditModal";

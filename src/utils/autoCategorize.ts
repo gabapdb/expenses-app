@@ -1,6 +1,6 @@
 import type { ItemRecord } from "@/domain/items";
 import type { Expense } from "@/domain/models";
-import { useItems } from "@/hooks/useItems";
+import { useItems } from "@/hooks/expenses/useItems";
 import { saveItemsCache, loadItemsCache, markItemUsed } from "@/utils/itemsCache";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
