@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useProjectExpenseBreakdown } from "@/hooks/useProjectExpenseBreakdown";
-import { useProject } from "@/hooks/useProjects";
+import { useProjectExpenseBreakdown } from "@/hooks/expenses/useProjectExpenseBreakdown";
+import { useProject } from "@/hooks/projects/useProjects";
 import { updateProjectCE } from "@/data/projects.repo.ce";
 import { peso, pct } from "@/utils/format";
 import { RotateCw } from "lucide-react";
@@ -27,6 +27,8 @@ type TradeKey =
   | "miscellaneous"
   | "toolsEquipment"
   | "transport";
+
+const EMPTY_COST_ESTIMATES: Partial<Record<TradeKey, number>> = {};
 
 const MATERIAL_TRADES: TradeKey[] = [
   "electrical",
@@ -53,10 +55,9 @@ export default function BreakdownOfCostsSection({
   const [activeTab, setActiveTab] = useState<TabKey>("cabinets");
   const [editingKey, setEditingKey] = useState<TradeKey | null>(null);
   const [draft, setDraft] = useState<number>(0);
-  const [savingKey, setSavingKey] = useState<TradeKey | null>(null);
   const [lastUpdated, setLastUpdated] = useState("");
 
-  const ce = project?.costEstimates ?? {};
+  const ce = project?.costEstimates ?? EMPTY_COST_ESTIMATES;
 
   const refresh = async () => {
     await refetch();
@@ -72,10 +73,8 @@ export default function BreakdownOfCostsSection({
 
   const saveCE = async (key: TradeKey, value: number) => {
     try {
-      setSavingKey(key);
       await updateProjectCE(projectId, { [key]: value });
     } finally {
-      setSavingKey(null);
       setEditingKey(null);
     }
   };

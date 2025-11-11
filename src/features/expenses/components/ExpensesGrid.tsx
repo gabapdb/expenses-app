@@ -1,19 +1,19 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useProjects } from "@/hooks/useProjects";
-import { useCategories } from "@/hooks/useCategories";
+import { useProjects } from "@/hooks/projects/useProjects";
+import { useCategories } from "@/hooks/expenses/useCategories";
 import { CATEGORY_MAP } from "@/config/categories";
-import { useRealtimeExpenses } from "@/hooks/useRealtimeExpenses";
+import { useRealtimeExpenses } from "@/hooks/expenses/useRealtimeExpenses";
 import { deleteExpense, updateExpensePaid } from "@/data/expenses.repo";
-import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
+import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import { getFirstZodError } from "@/utils/zodHelpers";
 import type { Expense } from "@/domain/models";
 
-import ExpensesTable from "@/components/ExpensesTable";
-import ExpenseForm from "@/components/ExpenseForm";
-import ExpenseEditModal from "@/components/ExpenseEditModal";
-import MonthTabs from "@/components/MonthTabs";
+import ExpensesTable from "@/features/expenses/components/ExpensesTable";
+import ExpenseForm from "@/features/expenses/components/ExpenseForm";
+import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
+import MonthTabs from "@/features/expenses/components/MonthTabs";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Props                                                                  */

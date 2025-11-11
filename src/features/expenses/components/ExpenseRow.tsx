@@ -2,12 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { updateExpensePaid } from "@/data/expenses.repo";
-import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
+import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import type { Expense } from "@/domain/models";
 import Checkbox from "@/components/ui/Checkbox";
 import Button from "@/components/ui/Button";
 import { peso } from "@/utils/format";
-import ExpenseEditModal from "@/components/ExpenseEditModal";
+import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
 
 interface ExpenseRowProps {
   yyyyMM: string;

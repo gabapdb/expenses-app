@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Folder, CreditCard, PieChart, Coins } from "lucide-react";
 import SummaryCard from "@/components/ui/SummaryCard";
 import SectionHeader from "@/components/ui/SectionHeader";
