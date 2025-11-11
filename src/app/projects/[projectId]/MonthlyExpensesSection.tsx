@@ -45,10 +45,18 @@ function deriveVisibleMonths(
     const startIdx = parseMonthIndex(startDate) ?? 0;
     const endIdx = parseMonthIndex(endDate) ?? allMonths.length - 1;
 
-    const rangeStart = Math.max(0, Math.min(startIdx, allMonths.length - 1));
-    const rangeEnd = Math.max(rangeStart, Math.min(endIdx, allMonths.length - 1));
+    const normalizedStart = Math.max(0, Math.min(startIdx, allMonths.length - 1));
+    const normalizedEnd = Math.max(0, Math.min(endIdx, allMonths.length - 1));
 
-    return allMonths.slice(rangeStart, rangeEnd + 1);
+    if (normalizedStart <= normalizedEnd) {
+      return allMonths.slice(normalizedStart, normalizedEnd + 1);
+    }
+
+    // Handle ranges that wrap across the year boundary (e.g., Oct → Feb)
+    return [
+      ...allMonths.slice(normalizedStart),
+      ...allMonths.slice(0, normalizedEnd + 1),
+    ];
   }
 
   const monthsWithData = Object.keys(byMonth)
