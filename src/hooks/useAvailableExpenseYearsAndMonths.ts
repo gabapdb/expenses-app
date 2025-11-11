@@ -48,32 +48,42 @@ export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAnd
         }
 
         const years: number[] = data.years;
-        const fetched: YearMonthInfo[] = [];
 
-        // 2️⃣ For each year, list all months that have expenses
-        for (const year of years) {
-          const expensesRef = collection(db, "expenses");
-          const snapshot = await getDocs(expensesRef);
+        // 2️⃣ Fetch the expenses collection once and bucket doc IDs by year
+        const expensesRef = collection(db, "expenses");
+        const snapshot = await getDocs(expensesRef);
 
-          const months = new Set<string>();
-          snapshot.forEach((docSnap) => {
-            const id = docSnap.id;
-            if (/^\d{6}$/.test(id) && id.startsWith(String(year))) {
-              months.add(id);
-            }
-          });
+        const monthsByYear = new Map<number, Set<string>>();
+        snapshot.forEach((docSnap) => {
+          const id = docSnap.id;
+          if (!/^\d{6}$/.test(id)) {
+            return;
+          }
 
-          fetched.push({
-            year,
-            months: Array.from(months).sort((a, b) => a.localeCompare(b)),
-          });
-        }
+          const year = Number(id.slice(0, 4));
+          if (!Number.isFinite(year)) {
+            return;
+          }
+
+          if (!monthsByYear.has(year)) {
+            monthsByYear.set(year, new Set());
+          }
+          monthsByYear.get(year)!.add(id);
+        });
+
+        // Ensure metadata years without documents are still represented
+        const allYears = Array.from(
+          new Set([...years, ...monthsByYear.keys()])
+        ).sort((a, b) => a - b);
+
+        const fetched: YearMonthInfo[] = allYears.map((year) => ({
+          year,
+          months: Array.from(monthsByYear.get(year) ?? [])
+            .sort((a, b) => a.localeCompare(b)),
+        }));
 
         if (active) {
           const sorted = fetched.sort((a, b) => b.year - a.year);
-          const latestYear = sorted[0]?.year;
-          const latestMonth =
-            sorted[0]?.months[sorted[0].months.length - 1] ?? undefined;
 
           setInfo(sorted);
           setLoading(false);

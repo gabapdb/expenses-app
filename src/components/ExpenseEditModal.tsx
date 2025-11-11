@@ -106,16 +106,18 @@ export default function ExpenseEditModal({
   };
 
   /* ------------------------------ AutoCategorize ---------------------------- */
-  async function handleDetailsBlur() {
-    if (!values.details?.trim()) return;
+  async function handleDetailsBlur(nextDetails: string) {
+    const details = nextDetails.trim();
+    if (!details) return;
+
     const { suggestion } = await autoCategorize({
-      details: values.details ?? "",
+      details,
       category: values.category ?? "",
       subCategory: values.subCategory ?? "",
     });
     if (suggestion) {
-      setValues((v) => ({
-        ...v,
+      setValues((current) => ({
+        ...current,
         category: suggestion.category,
         subCategory: suggestion.subCategory,
       }));
@@ -310,17 +312,22 @@ try {
           </FormField>
 
           {/* 🧩 DETAILS BEFORE CATEGORY */}
-         <FormField label="Details">
+          <FormField label="Details">
   <DetailsAutocomplete
     value={values.details ?? ""}
-    onChange={(val) => setValues({ ...values, details: val })}
+    onChange={(val) =>
+      setValues((prev) => ({
+        ...prev,
+        details: val,
+      }))
+    }
     onSelectSuggestion={(item) => {
-      setValues({
-        ...values,
+      setValues((prev) => ({
+        ...prev,
         details: item.name,
         category: item.category,
         subCategory: item.subCategory,
-      });
+      }));
       setHighlightCat(true);
       setHighlightSub(true);
       setTimeout(() => {
@@ -328,6 +335,7 @@ try {
         setHighlightSub(false);
       }, 1000);
     }}
+    onBlurAutoCategorize={handleDetailsBlur}
   />
 </FormField>
 
