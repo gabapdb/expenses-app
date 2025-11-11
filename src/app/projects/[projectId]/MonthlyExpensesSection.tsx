@@ -26,10 +26,37 @@ function deriveVisibleMonths(
   startDate?: string,
   endDate?: string
 ): string[] {
+  const parseMonthIndex = (value?: string): number | null => {
+    if (!value) return null;
+
+    // Support raw YYYYMM strings from Firestore
+    if (/^\d{6}$/.test(value)) {
+      const month = Number(value.slice(4, 6));
+      return month >= 1 && month <= 12 ? month - 1 : null;
+    }
+
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) return null;
+    const date = new Date(parsed);
+    return Number.isNaN(date.getTime()) ? null : date.getMonth();
+  };
+
   if (startDate || endDate) {
-    const startIdx = startDate ? new Date(startDate).getMonth() : 0;
-    const endIdx = endDate ? new Date(endDate).getMonth() : 11;
-    return allMonths.slice(startIdx, endIdx + 1);
+    const startIdx = parseMonthIndex(startDate) ?? 0;
+    const endIdx = parseMonthIndex(endDate) ?? allMonths.length - 1;
+
+    const normalizedStart = Math.max(0, Math.min(startIdx, allMonths.length - 1));
+    const normalizedEnd = Math.max(0, Math.min(endIdx, allMonths.length - 1));
+
+    if (normalizedStart <= normalizedEnd) {
+      return allMonths.slice(normalizedStart, normalizedEnd + 1);
+    }
+
+    // Handle ranges that wrap across the year boundary (e.g., Oct → Feb)
+    return [
+      ...allMonths.slice(normalizedStart),
+      ...allMonths.slice(0, normalizedEnd + 1),
+    ];
   }
 
   const monthsWithData = Object.keys(byMonth)

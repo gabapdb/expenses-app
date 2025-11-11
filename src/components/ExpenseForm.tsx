@@ -136,16 +136,18 @@ export default function ExpenseForm({
 
 
   /** 🔍 Auto-categorize and briefly highlight */
-  async function handleDetailsBlur() {
-    if (!draft.details?.trim()) return;
+  async function handleDetailsBlur(nextDetails: string) {
+    const details = nextDetails.trim();
+    if (!details) return;
+
     const { suggestion } = await autoCategorize({
-      details: draft.details ?? "",
+      details,
       category: draft.category ?? "",
       subCategory: draft.subCategory ?? "",
     });
     if (suggestion) {
-      setDraft((d) => ({
-        ...d,
+      setDraft((current) => ({
+        ...current,
         category: suggestion.category,
         subCategory: suggestion.subCategory,
       }));
@@ -226,26 +228,27 @@ export default function ExpenseForm({
 
         {/* 🧩 DETAILS BEFORE CATEGORY */}
 
-<FormField label="Details">
-  <DetailsAutocomplete
-    value={draft.details ?? ""}
-    onChange={(val) => setDraft({ ...draft, details: val })}
-    onSelectSuggestion={(item) => {
-      setDraft({
-        ...draft,
-        details: item.name,
-        category: item.category,
-        subCategory: item.subCategory,
-      });
-      setHighlightCat(true);
-      setHighlightSub(true);
-      setTimeout(() => {
-        setHighlightCat(false);
-        setHighlightSub(false);
-      }, 1000);
-    }}
-  />
-</FormField>
+        <FormField label="Details">
+          <DetailsAutocomplete
+            value={draft.details ?? ""}
+            onChange={(val) => setDraft((prev) => ({ ...prev, details: val }))}
+            onSelectSuggestion={(item) => {
+              setDraft((prev) => ({
+                ...prev,
+                details: item.name,
+                category: item.category,
+                subCategory: item.subCategory,
+              }));
+              setHighlightCat(true);
+              setHighlightSub(true);
+              setTimeout(() => {
+                setHighlightCat(false);
+                setHighlightSub(false);
+              }, 1000);
+            }}
+            onBlurAutoCategorize={handleDetailsBlur}
+          />
+        </FormField>
 
 
         {/* Category */}
