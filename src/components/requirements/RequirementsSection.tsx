@@ -47,8 +47,8 @@ export default function RequirementsSection({ projectId }: RequirementsSectionPr
       {/* Add Requirement Form */}
       <AddRequirementForm
         projectId={projectId}
-        area={activeArea === "all" ? "" : activeArea}
-        onClose={() => {}}
+        initialArea={activeArea === "all" ? "" : activeArea}
+        availableAreas={areaList}
         onAdded={refresh}
       />
 

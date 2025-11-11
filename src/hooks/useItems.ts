@@ -47,6 +47,24 @@ export function useItems() {
     })();
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleCacheUpdated = () => {
+      void (async () => {
+        const cached = await loadItemsCache();
+        if (cached) {
+          setItems(cached);
+        }
+      })();
+    };
+
+    window.addEventListener("itemsCacheUpdated", handleCacheUpdated);
+
+    return () =>
+      window.removeEventListener("itemsCacheUpdated", handleCacheUpdated);
+  }, []);
+
   /* -------------------------------------------------------------------------- */
   /* 🔍 findBestItemMatch: instant fuzzy search                                 */
   /* -------------------------------------------------------------------------- */

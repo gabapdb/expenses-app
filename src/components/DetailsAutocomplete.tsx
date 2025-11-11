@@ -41,6 +41,24 @@ export default function DetailsAutocomplete({
     })();
   }, []);
 
+  /* ------------------------- React to cache broadcast updates ------------------------- */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleCacheUpdated = () => {
+      void (async () => {
+        const cached = await loadItemsCache();
+        if (cached) {
+          setItems(cached);
+        }
+      })();
+    };
+
+    window.addEventListener("itemsCacheUpdated", handleCacheUpdated);
+    return () =>
+      window.removeEventListener("itemsCacheUpdated", handleCacheUpdated);
+  }, []);
+
   /* ------------------------------- Filter logic ------------------------------- */
   useEffect(() => {
     const handle = setTimeout(() => {
