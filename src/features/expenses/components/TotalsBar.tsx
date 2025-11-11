@@ -1,4 +1,4 @@
-import Card from "./ui/Card";
+import Card from "@/components/ui/Card";
 import { peso } from "@/utils/format";
 
 
@@ -9,7 +9,7 @@ perCategory: { category: string; total: number }[];
 }) {
 return (
 <Card>
-<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
 <div>
 <div className="text-xs text-gray-500">Projects</div>
 <div className="text-lg font-semibold">{totalProjects}</div>
