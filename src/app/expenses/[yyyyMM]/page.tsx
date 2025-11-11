@@ -3,7 +3,7 @@ import ExpensesPageClient from "./ExpensesPageClient";
 export default async function ExpensesPage({
   params,
 }: {
-  params: Promise<{ yyyyMM: string }>;
+  params: { yyyyMM: string };
 }) {
   const { yyyyMM } = await params;
 
