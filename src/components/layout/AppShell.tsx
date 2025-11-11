@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
@@ -15,7 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       />
 
       {/* ✅ Remove any ml-* margin — sidebar now overlays */}
-      <main className="relative h-full overflow-y-auto transition-all duration-300 pl-16">
+      <main className="relative h-full pl-16 overflow-y-auto transition-all duration-300">
         {children}
       </main>
     </div>

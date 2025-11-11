@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import { useEffect, useMemo, useState } from "react";
-=======
 import { useEffect, useState } from "react";
->>>>>>> 08e0677b8c456a58e7bad590d8208d5650b7ef85
 import { useRouter } from "next/navigation";
 import { useAvailableExpenseYearsAndMonths } from "@/hooks/expenses/useAvailableExpenseYearsAndMonths";
 import ExpensesGrid from "@/features/expenses/components/ExpensesGrid";
