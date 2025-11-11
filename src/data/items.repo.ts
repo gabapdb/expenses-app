@@ -16,7 +16,6 @@ import {
   NewItem,
   NewItemSchema,
 } from "@/domain/items";
-import { z } from "zod";
 
 const col = () => collection(db, "itemsDB");
 

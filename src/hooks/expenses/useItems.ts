@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "@/core/firebase";
-import type { ItemRecord } from "@/domain/items";
+import { ItemArraySchema, type ItemRecord } from "@/domain/items";
 import { saveItemsCache, loadItemsCache } from "@/utils/itemsCache";
 
 /**
@@ -32,9 +32,10 @@ export function useItems() {
 
       // background refresh from Firestore (non-blocking)
       try {
-        const q = query(collection(db, "items"));
+        const q = query(collection(db, "itemsDB"));
         const snap = await getDocs(q);
-        const fresh: ItemRecord[] = snap.docs.map((d) => d.data() as ItemRecord);
+        const raw = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const fresh = ItemArraySchema.parse(raw);
 
         if (fresh.length) {
           setItems(fresh);
@@ -44,6 +45,24 @@ export function useItems() {
         console.warn("[useItems] Firestore refresh failed:", err);
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleCacheUpdated = () => {
+      void (async () => {
+        const cached = await loadItemsCache();
+        if (cached) {
+          setItems(cached);
+        }
+      })();
+    };
+
+    window.addEventListener("itemsCacheUpdated", handleCacheUpdated);
+
+    return () =>
+      window.removeEventListener("itemsCacheUpdated", handleCacheUpdated);
   }, []);
 
   /* -------------------------------------------------------------------------- */

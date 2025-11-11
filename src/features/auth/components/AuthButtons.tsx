@@ -1,7 +1,7 @@
 "use client";
 
 import { signInWithGoogle, signOutUser } from "@/core/auth";
-import { useAuthUser } from "@/hooks/useAuthUser";
+import { useAuthUser } from "@/hooks/auth/useAuthUser";
 import Button from "@/components/ui/Button";
 
 export default function AuthButtons() {

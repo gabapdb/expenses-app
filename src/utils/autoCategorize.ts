@@ -1,6 +1,6 @@
 import type { ItemRecord } from "@/domain/items";
 import type { Expense } from "@/domain/models";
-import { useItems } from "@/hooks/useItems";
+import { useItems } from "@/hooks/expenses/useItems";
 import { saveItemsCache, loadItemsCache, markItemUsed } from "@/utils/itemsCache";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
@@ -41,15 +41,24 @@ export function useAutoCategorize() {
       suggestion: null,
       learn: async (finalCategory: string, finalSub: string) => {
         const now = Date.now();
-        const id = details.toLowerCase().replace(/\s+/g, "_");
+        const normalized = details.trim().toLowerCase();
+        const safeIdBase = normalized
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 120);
+        const id = safeIdBase && !safeIdBase.startsWith("__")
+          ? safeIdBase
+          : `item-${crypto.randomUUID()}`;
 
         const item: ItemRecord = {
           id,
           name: details,
-          nameLower: details.toLowerCase(),
+          nameLower: normalized || details.toLowerCase(),
           category: finalCategory,
           subCategory: finalSub,
-          keywords: details.split(/\s+/).map((w) => w.toLowerCase()),
+          keywords: Array.from(
+            new Set(normalized.split(/\s+/).filter(Boolean))
+          ),
           createdAt: now,
           lastUsedAt: now,
         };
@@ -67,7 +76,9 @@ export function useAutoCategorize() {
         await saveItemsCache(updated);
 
         // 🔹 Notify listeners
-        window.dispatchEvent(new CustomEvent("itemsCacheUpdated"));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("itemsCacheUpdated"));
+        }
         console.log("[AutoCategorize] Learned + cached:", item.name);
       },
     };

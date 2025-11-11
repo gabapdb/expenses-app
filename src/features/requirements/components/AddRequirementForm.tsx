@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import {
   REQUIREMENT_TYPE_LIST,
@@ -38,18 +38,21 @@ const RequirementFormSchema = z.object({
 /* -------------------------------------------------------------------------- */
 interface AddRequirementFormProps {
   projectId: string;
-  area: string;
-  onClose: () => void;
+  initialArea: string;
+  availableAreas: string[];
   onAdded?: () => void;
 }
 
 export default function AddRequirementForm({
   projectId,
-  area,
+  initialArea,
+  availableAreas,
   onAdded,
 }: AddRequirementFormProps) {
-  const [formData, setFormData] = useState<z.infer<typeof RequirementFormSchema>>({
-    area,
+  const [formData, setFormData] = useState<
+    z.infer<typeof RequirementFormSchema>
+  >({
+    area: initialArea,
     store: "",
     item: "",
     type: "" as unknown as RequirementType,
@@ -58,11 +61,45 @@ export default function AddRequirementForm({
     notes: "",
   });
 
-  const [areas, setAreas] = useState<string[]>(area ? [area] : []);
+  const [customAreas, setCustomAreas] = useState<string[]>(
+    initialArea ? [initialArea] : []
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newArea, setNewArea] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /* ------------------------------------------------------------------------ */
+  /* ♻️ Sync area defaults + available options                                 */
+  /* ------------------------------------------------------------------------ */
+  useEffect(() => {
+    if (!initialArea) return;
+    setFormData((prev) => ({ ...prev, area: initialArea }));
+  }, [initialArea]);
+
+  useEffect(() => {
+    if (!initialArea) return;
+    setCustomAreas((prev) =>
+      prev.includes(initialArea) ? prev : [...prev, initialArea]
+    );
+  }, [initialArea]);
+
+  useEffect(() => {
+    setCustomAreas((prev) =>
+      prev.filter((area) => !availableAreas.includes(area))
+    );
+  }, [availableAreas]);
+
+  const areaOptions = useMemo(() => {
+    const merged = new Set<string>();
+    availableAreas.forEach((area) => {
+      if (area.trim()) merged.add(area);
+    });
+    customAreas.forEach((area) => {
+      if (area.trim()) merged.add(area);
+    });
+    return Array.from(merged).sort((a, b) => a.localeCompare(b));
+  }, [availableAreas, customAreas]);
 
   /* ------------------------------------------------------------------------ */
   /* 🪄 Handlers                                                              */
@@ -71,17 +108,21 @@ export default function AddRequirementForm({
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (name === "area" && value === "__add_new__") {
       setIsModalOpen(true);
+      return;
     }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAddArea = () => {
     const trimmed = newArea.trim();
     if (!trimmed) return;
-    if (!areas.includes(trimmed)) setAreas([...areas, trimmed]);
+    setCustomAreas((prev) =>
+      prev.includes(trimmed) ? prev : [...prev, trimmed]
+    );
     setFormData((prev) => ({ ...prev, area: trimmed }));
     setNewArea("");
     setIsModalOpen(false);
@@ -191,7 +232,7 @@ export default function AddRequirementForm({
               className="w-full rounded-md bg-[#2a2a2a] p-2 text-sm"
             >
               <option value="">Select Area</option>
-              {areas.map((a) => (
+              {areaOptions.map((a) => (
                 <option key={a} value={a}>
                   {a}
                 </option>

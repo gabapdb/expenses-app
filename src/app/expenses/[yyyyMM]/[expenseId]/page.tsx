@@ -3,10 +3,10 @@
 import { useEffect, useReducer, useState } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useExpense } from "@/hooks/useExpense";
+import { useExpense } from "@/hooks/expenses/useExpense";
 import Card from "@/components/ui/Card";
 import { peso } from "@/utils/format";
-import ExpenseEditModal from "@/components/ExpenseEditModal";
+import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
 import SectionHeader from "@/components/ui/SectionHeader";
 import type { Expense } from "@/domain/models";
 import "@/styles/pages.css";

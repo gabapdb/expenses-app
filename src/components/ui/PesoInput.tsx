@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 
 interface PesoInputProps {
   value: number;
@@ -19,12 +19,15 @@ export default function PesoInput({
   const [localValue, setLocalValue] = useState<number>(value ?? 0);
 
   // keep input in sync when external value changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (value != null && !isNaN(value)) {
+    if (value == null || Number.isNaN(value)) {
+      return;
+    }
+
+    startTransition(() => {
       setDisplay(String(value));
       setLocalValue(value);
-    }
+    });
   }, [value]);
 
   const formatDisplay = (num: number): string =>

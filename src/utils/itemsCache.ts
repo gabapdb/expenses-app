@@ -61,7 +61,9 @@ export async function markItemUsed(itemId: string): Promise<void> {
   );
 
   await saveItemsCache(updated);
-  window.dispatchEvent(new CustomEvent("itemsCacheUpdated"));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("itemsCacheUpdated"));
+  }
 
   // Try to update Firestore, fail silently if offline
   try {
@@ -97,7 +99,9 @@ export async function runItemsCacheCleanup(): Promise<void> {
 
   if (cleaned.length !== cached.length) {
     await saveItemsCache(cleaned);
-    window.dispatchEvent(new CustomEvent("itemsCacheUpdated"));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("itemsCacheUpdated"));
+    }
     console.info(
       `[itemsCache] 🧹 Pruned ${cached.length - cleaned.length} old items (>90 days)`
     );

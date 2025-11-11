@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Card from "@/components/ui/Card";
-import type { Project } from "@/hooks/useProjects";
-import ProjectEditModal from "@/components/ProjectEditModal";
-import { useProjectExpenseBreakdown } from "@/hooks/useProjectExpenseBreakdown";
+import type { Project } from "@/hooks/projects/useProjects";
+import ProjectEditModal from "@/features/projects/components/ProjectEditModal";
+import { useProjectExpenseBreakdown } from "@/hooks/expenses/useProjectExpenseBreakdown";
 import { peso } from "@/utils/expenses";
 
 interface ProjectInfoSectionProps {

@@ -2,15 +2,10 @@
 
 import clsx from "clsx";
 import Image from "next/image";
-import {
-  Home,
-  Folder,
-  DollarSign,
-  BarChart2,
-  Settings,
-} from "lucide-react";
-import "@/styles/sidebar.css";
+import { Home, Folder, DollarSign, BarChart2, Settings } from "lucide-react";
 import Link from "next/link";
+import "@/styles/sidebar.css";
+import { toYYYYMM } from "@/utils/time";
 
 interface SidebarProps {
   expanded: boolean;
@@ -22,7 +17,11 @@ export default function Sidebar({ expanded, onEnter, onLeave }: SidebarProps) {
   const navItems = [
     { icon: <Home size={20} />, label: "Dashboard", href: "/dashboard" },
     { icon: <Folder size={20} />, label: "Projects", href: "/projects" },
-    { icon: <DollarSign size={20} />, label: "Expenses", href: "/expenses" },
+    {
+      icon: <DollarSign size={20} />,
+      label: "Expenses",
+      href: `/expenses/${toYYYYMM()}`,
+    },
     { icon: <BarChart2 size={20} />, label: "Summary", href: "/summary" },
     { icon: <Settings size={20} />, label: "Settings", href: "/settings" },
   ];
