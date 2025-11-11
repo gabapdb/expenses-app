@@ -1,10 +1,4 @@
-import {
-  doc,
-  setDoc,
-  getDoc,
-  onSnapshot,
-  getFirestore,
-} from "firebase/firestore";
+import { doc, setDoc, getDoc, onSnapshot } from "firebase/firestore";
 import { db } from "@/core/firebase";
 import { z } from "zod";
 import type { MutableCategoryMap } from "@/config/categories";

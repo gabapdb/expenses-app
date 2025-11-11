@@ -1,6 +1,6 @@
 "use client";
 
-import { useRealtimeExpenses } from "@/hooks/useRealtimeExpenses";
+import { useRealtimeExpenses } from "@/hooks/expenses/useRealtimeExpenses";
 import type { Expense } from "@/domain/models";
 
 /**

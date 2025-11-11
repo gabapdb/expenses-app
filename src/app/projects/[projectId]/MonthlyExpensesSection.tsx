@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import ExpensePieChart from "@/components/charts/ExpensesPieChart";
-import { useProjectExpensesByYear } from "@/hooks/useProjectExpensesByYear";
+import ExpensePieChart from "@/features/expenses/components/charts/ExpensesPieChart";
+import { useProjectExpensesByYear } from "@/hooks/expenses/useProjectExpensesByYear";
 import { allMonths, peso } from "@/utils/expenses";
 import { CATEGORY_LIST } from "@/config/categories";
 
@@ -111,7 +111,7 @@ export default function MonthlyExpensesSection({
 
   const visibleMonths = useMemo(
     () => deriveVisibleMonths(allMonths, byMonth, startDate, endDate),
-    [allMonths, byMonth, startDate, endDate]
+    [byMonth, startDate, endDate]
   );
 
   const hasData = grandTotal > 0 && visibleMonths.length > 0;

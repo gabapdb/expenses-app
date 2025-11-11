@@ -8,10 +8,10 @@ import { uuid } from "@/utils/id";
 import { addExpense } from "@/data/expenses.repo";
 import { isoDateToYYYYMM } from "@/utils/time";
 import type { Expense } from "@/domain/models";
-import { invalidateProjectExpenses } from "@/hooks/useProjectExpensesCollection";
+import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import { getFirstZodError } from "@/utils/zodHelpers";
 import { useAutoCategorize } from "@/utils/autoCategorize";
-import DetailsAutocomplete from "@/components/DetailsAutocomplete";
+import DetailsAutocomplete from "@/features/expenses/components/DetailsAutocomplete";
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const fmtDateInput = (iso?: string) =>
