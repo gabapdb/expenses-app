@@ -1,9 +1,9 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAvailableExpenseYearsAndMonths } from "@/hooks/useAvailableExpenseYearsAndMonths";
-import ExpensesGrid from "@/components/ExpensesGrid";
+import { useAvailableExpenseYearsAndMonths } from "@/hooks/expenses/useAvailableExpenseYearsAndMonths";
+import ExpensesGrid from "@/features/expenses/components/ExpensesGrid";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Page Component                                                          */
@@ -11,10 +11,10 @@ import ExpensesGrid from "@/components/ExpensesGrid";
 export default function ExpensesPage({
   params,
 }: {
-  params: Promise<{ yyyyMM: string }>;
+  params: { yyyyMM: string };
 }) {
   const router = useRouter();
-  const { yyyyMM } = use(params);
+  const { yyyyMM } = params;
 
   const { info, latestYear, latestMonth, loading, error } =
     useAvailableExpenseYearsAndMonths();
@@ -46,40 +46,27 @@ export default function ExpensesPage({
     router.push(`/expenses/${latestForYear}`);
   };
 
-  /* 🗓️ Build month list ---------------------------------------------------- */
-  const months = useMemo(() => {
-    const found = info.find((y) => y.year === selectedYear);
-    if (found?.months?.length) {
-      return found.months.map((m) => ({
-        name: new Date(
-          Number(m.slice(0, 4)),
-          Number(m.slice(4, 6)) - 1
-        ).toLocaleString("default", { month: "long" }),
-        value: m,
-      }));
-    }
-
-    // fallback to all months if none loaded
-    return Array.from({ length: 12 }, (_, idx) => {
-      const mm = String(idx + 1).padStart(2, "0");
-      return {
-        name: new Date(0, idx).toLocaleString("default", { month: "long" }),
-        value: `${selectedYear}${mm}`,
-      };
-    });
-  }, [info, selectedYear]);
-
   /* 🧠 Auto-jump when hook finishes loading -------------------------------- */
   useEffect(() => {
-    if (!loading && latestYear && latestMonth) {
-      queueMicrotask(() => {
-        setSelectedYear(latestYear);
-        setSelectedMonth(latestMonth.slice(4, 6));
-        router.push(`/expenses/${latestMonth}`);
-      });
+    if (loading || !latestYear || !latestMonth) {
+      return;
     }
+
+    const monthExists = info.some((yearInfo) =>
+      yearInfo.months.includes(yyyyMM)
+    );
+
+    if (monthExists || latestMonth === yyyyMM) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      setSelectedYear(latestYear);
+      setSelectedMonth(latestMonth.slice(4, 6));
+      router.replace(`/expenses/${latestMonth}`);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, latestYear, latestMonth]);
+  }, [loading, latestYear, latestMonth, info, yyyyMM]);
 
   /* ------------------------------------------------------------------------ */
   /* 🖼️ Render                                                               */

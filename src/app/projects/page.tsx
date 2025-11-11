@@ -7,9 +7,9 @@ import Link from "next/link";
 import SectionHeader from "@/components/ui/SectionHeader";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import ProjectCreateModal from "@/components/ProjectCreateModal";
-import ProjectEditModal from "@/components/ProjectEditModal";
-import { useProjects, type Project } from "@/hooks/useProjects";
+import ProjectCreateModal from "@/features/projects/components/ProjectCreateModal";
+import ProjectEditModal from "@/features/projects/components/ProjectEditModal";
+import { useProjects, type Project } from "@/hooks/projects/useProjects";
 import { peso } from "@/utils/format";
 import "@/styles/dashboard.css";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useRequirements } from "@/hooks/useRequirements";
+import { useRequirements } from "@/hooks/requirements/useRequirements";
 import RequirementsTable from "./RequirementsTable";
 import AddRequirementForm from "./AddRequirementForm";
 import RequirementEditModal from "./RequirementEditModal";
@@ -47,8 +47,8 @@ export default function RequirementsSection({ projectId }: RequirementsSectionPr
       {/* Add Requirement Form */}
       <AddRequirementForm
         projectId={projectId}
-        area={activeArea === "all" ? "" : activeArea}
-        onClose={() => {}}
+        initialArea={activeArea === "all" ? "" : activeArea}
+        availableAreas={areaList}
         onAdded={refresh}
       />
 
