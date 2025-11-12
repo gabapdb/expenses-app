@@ -37,6 +37,7 @@ export default function ExpensesGrid({
   yyyyMM,
   selectedYear,
   selectedMonth,
+  availableYears,
   onMonthChange,
   onYearChange,
   loadingYears,
@@ -118,6 +119,7 @@ export default function ExpensesGrid({
               }
               mode="expenses"
               className="w-28"
+              years={availableYears}
             />
           )}
         </div>

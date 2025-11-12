@@ -13,22 +13,34 @@ interface UseProjectYearsResult {
   error: string | null;
 }
 
+interface UseProjectYearsOptions {
+  enabled?: boolean;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 🧮 Hook                                                                    */
 /* -------------------------------------------------------------------------- */
-export function useProjectYears(): UseProjectYearsResult {
+export function useProjectYears(
+  options: UseProjectYearsOptions = {}
+): UseProjectYearsResult {
+  const { enabled = true } = options;
+
   const [years, setYears] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [internalLoading, setInternalLoading] = useState<boolean>(false);
+  const [internalError, setInternalError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let active = true;
 
     async function load() {
-      try {
-        setLoading(true);
-        setError(null);
+      setInternalLoading(true);
+      setInternalError(null);
 
+      try {
         const snapshot = await getDocs(collection(db, "projects"));
         const found = new Set<number>();
 
@@ -42,13 +54,15 @@ export function useProjectYears(): UseProjectYearsResult {
 
         if (active) {
           setYears(Array.from(found).sort((a, b) => b - a));
-          setLoading(false);
+          setInternalLoading(false);
         }
       } catch (err) {
         console.error("[useProjectYears] Error:", err);
         if (active) {
-          setError(err instanceof Error ? err.message : "Unknown error");
-          setLoading(false);
+          setInternalError(
+            err instanceof Error ? err.message : "Unknown error"
+          );
+          setInternalLoading(false);
         }
       }
     }
@@ -57,7 +71,11 @@ export function useProjectYears(): UseProjectYearsResult {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
-  return { years, loading, error };
+  return {
+    years,
+    loading: enabled ? internalLoading : false,
+    error: enabled ? internalError : null,
+  };
 }

@@ -13,18 +13,33 @@ interface UseExpenseYearsResult {
   error: string | null;
 }
 
+interface UseExpenseYearsOptions {
+  enabled?: boolean;
+}
+
 /* -------------------------------------------------------------------------- */
 /* 🧮 Hook                                                                    */
 /* -------------------------------------------------------------------------- */
-export function useExpenseYears(): UseExpenseYearsResult {
+export function useExpenseYears(
+  options: UseExpenseYearsOptions = {}
+): UseExpenseYearsResult {
+  const { enabled = true } = options;
+
   const [years, setYears] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [internalLoading, setInternalLoading] = useState<boolean>(false);
+  const [internalError, setInternalError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     let active = true;
 
     async function load() {
+      setInternalLoading(true);
+      setInternalError(null);
+
       try {
         const ref = doc(db, "metadata", "expenseYears");
         const snap = await getDoc(ref);
@@ -37,9 +52,9 @@ export function useExpenseYears(): UseExpenseYearsResult {
       } catch (err) {
         console.error("[useExpenseYears] Error:", err);
         if (active)
-          setError(err instanceof Error ? err.message : "Unknown error");
+          setInternalError(err instanceof Error ? err.message : "Unknown error");
       } finally {
-        if (active) setLoading(false);
+        if (active) setInternalLoading(false);
       }
     }
 
@@ -47,7 +62,11 @@ export function useExpenseYears(): UseExpenseYearsResult {
     return () => {
       active = false;
     };
-  }, []);
+  }, [enabled]);
 
-  return { years, loading, error };
+  return {
+    years,
+    loading: enabled ? internalLoading : false,
+    error: enabled ? internalError : null,
+  };
 }
