@@ -1,0 +1,175 @@
+C:\Users\anj puyat\expenses-app
+├── eslint.config.mjs
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── postcss.config.mjs
+├── README.md
+├── src
+|  ├── app
+|  |  ├── dashboard
+|  |  |  └── page.tsx
+|  |  ├── expenses
+|  |  |  ├── page.tsx
+|  |  |  └── [yyyyMM]
+|  |  |     ├── ExpensesPageClient.tsx
+|  |  |     ├── page.tsx
+|  |  |     └── [expenseId]
+|  |  |        └── page.tsx
+|  |  ├── favicon.ico
+|  |  ├── layout.tsx
+|  |  ├── page.tsx
+|  |  ├── projects
+|  |  |  ├── page.tsx
+|  |  |  └── [projectId]
+|  |  |     ├── BreakdownOfCostsSection.tsx
+|  |  |     ├── MonthlyExpensesSection.tsx
+|  |  |     ├── page.tsx
+|  |  |     ├── ProjectInfoSection.tsx
+|  |  |     └── ProjectOverviewSection.tsx
+|  |  └── summary
+|  |     └── page.tsx
+|  ├── components
+|  |  ├── layout
+|  |  |  ├── AppShell.tsx
+|  |  |  └── Sidebar.tsx
+|  |  └── ui
+|  |     ├── AddItemModal.tsx
+|  |     ├── Badge.tsx
+|  |     ├── Button.tsx
+|  |     ├── Card.tsx
+|  |     ├── Checkbox.tsx
+|  |     ├── ConfirmDialog.tsx
+|  |     ├── DevLoginButton.tsx
+|  |     ├── ExpensesTable.tsx
+|  |     ├── Input.tsx
+|  |     ├── Label.tsx
+|  |     ├── PesoInput.tsx
+|  |     ├── SectionHeader.tsx
+|  |     ├── Select.tsx
+|  |     ├── SummaryCard.tsx
+|  |     ├── Table.tsx
+|  |     ├── Textarea.tsx
+|  |     └── YearPicker.tsx
+|  ├── config
+|  |  ├── categories.ts
+|  |  ├── requirements.ts
+|  |  └── teams.ts
+|  ├── core
+|  |  ├── auth.ts
+|  |  ├── firebase.ts
+|  |  ├── logger.ts
+|  |  └── types.ts
+|  ├── data
+|  |  ├── categories.repo.ts
+|  |  ├── expenses.repo.ts
+|  |  ├── items.repo.ts
+|  |  ├── projects.repo.ce.ts
+|  |  ├── projects.repo.ts
+|  |  ├── requirementAreas.repo.ts
+|  |  ├── requirements.repo.ts
+|  |  └── summary.repo.ts
+|  ├── domain
+|  |  ├── compute.ts
+|  |  ├── items.ts
+|  |  ├── mapping.ts
+|  |  ├── models.ts
+|  |  ├── types
+|  |  |  └── NormalizedProject.ts
+|  |  └── validation
+|  |     ├── expenseSchema.ts
+|  |     └── requirementSchema.ts
+|  ├── features
+|  |  ├── auth
+|  |  |  └── components
+|  |  |     └── AuthButtons.tsx
+|  |  ├── expenses
+|  |  |  └── components
+|  |  |     ├── CategoryBreakdown.tsx
+|  |  |     ├── charts
+|  |  |     |  ├── CategoryPieChart.tsx
+|  |  |     |  ├── ExpensesPieChart.tsx
+|  |  |     |  └── MonthlyTrendChart.tsx
+|  |  |     ├── DetailsAutocomplete.tsx
+|  |  |     ├── ExpenseEditModal.tsx
+|  |  |     ├── ExpenseForm.tsx
+|  |  |     ├── ExpenseRow.tsx
+|  |  |     ├── ExpensesGrid.tsx
+|  |  |     ├── ExpensesTable.tsx
+|  |  |     ├── MonthTabs.tsx
+|  |  |     └── TotalsBar.tsx
+|  |  ├── projects
+|  |  |  └── components
+|  |  |     ├── ProjectCard.tsx
+|  |  |     ├── ProjectCreateModal.tsx
+|  |  |     ├── ProjectEditModal.tsx
+|  |  |     ├── ProjectForm.tsx
+|  |  |     ├── ProjectInfoCard.tsx
+|  |  |     └── ProjectsTabs.tsx
+|  |  ├── requirements
+|  |  |  └── components
+|  |  |     ├── AddRequirementForm.tsx
+|  |  |     ├── RequirementEditModal.tsx
+|  |  |     ├── RequirementsSection.tsx
+|  |  |     ├── RequirementsTable.tsx
+|  |  |     └── StatusBadge.tsx
+|  |  └── summary
+|  |     └── components
+|  |        ├── SummaryByMonth.tsx
+|  |        └── SummaryByProjectYear.tsx
+|  ├── hooks
+|  |  ├── auth
+|  |  |  └── useAuthUser.ts
+|  |  ├── dashboard
+|  |  |  └── useDashboardStats.ts
+|  |  ├── expenses
+|  |  |  ├── useAvailableExpenseYearsAndMonths.ts
+|  |  |  ├── useCategories.ts
+|  |  |  ├── useExpense.ts
+|  |  |  ├── useExpenseYears.ts
+|  |  |  ├── useItems.ts
+|  |  |  ├── useMonthlyExpenses.ts
+|  |  |  ├── useProjectExpenseBreakdown.ts
+|  |  |  ├── useProjectExpenses.ts
+|  |  |  ├── useProjectExpensesByYear.ts
+|  |  |  ├── useProjectExpensesCollection.ts
+|  |  |  ├── useRealtimeExpenses.ts
+|  |  |  └── useRecentExpenses.ts
+|  |  ├── projects
+|  |  |  ├── useActiveProjects.ts
+|  |  |  ├── useFilteredProjects.ts
+|  |  |  ├── useProjects.ts
+|  |  |  └── useProjectYears.ts
+|  |  ├── requirements
+|  |  |  └── useRequirements.ts
+|  |  └── shared
+|  |     └── useValidation.ts
+|  ├── styles
+|  |  ├── dashboard.css
+|  |  ├── design-tokens.css
+|  |  ├── globals.css
+|  |  ├── layout.css
+|  |  ├── pages.css
+|  |  └── sidebar.css
+|  └── utils
+|     ├── analytics.ts
+|     ├── autoCategorize.ts
+|     ├── expenses.ts
+|     ├── format.ts
+|     ├── id.ts
+|     ├── itemsCache.ts
+|     ├── itemsSearch.ts
+|     ├── normalizeDate.ts
+|     ├── normalizeProject.ts
+|     ├── normalizeTeam.ts
+|     ├── time.ts
+|     └── zodHelpers.ts
+├── src_structure.txt
+├── tailwind.config.js
+└── tsconfig.json
+
+directory: 4030 file: 32605
+
+ignored: directory (33)
