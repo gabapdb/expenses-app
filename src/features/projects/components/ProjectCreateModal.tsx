@@ -19,8 +19,8 @@ interface DraftProject {
   startDate: string;
   endDate: string;
   projectSize: string;
-  siteEngineer: string; // 🆕
-  designer: string;     // 🆕
+  siteEngineer: string;
+  designer: string;
 }
 
 const initialDraft: DraftProject = {
@@ -35,7 +35,6 @@ const initialDraft: DraftProject = {
   siteEngineer: "",
   designer: "",
 };
-
 
 function generateProjectId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -65,24 +64,20 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
       projectCost: draft.projectCost.trim(),
       siteEngineer: draft.siteEngineer.trim(),
       designer: draft.designer.trim(),
-
     }),
     [draft]
   );
 
- const canSave = useMemo(() => {
-  if (!trimmed.name || !trimmed.team) return false;
-
-  const cost = Number(trimmed.projectCost);
-  if (!Number.isFinite(cost) || cost < 0) return false;
-
-  return true;
-}, [trimmed]);
-
+  const canSave = useMemo(() => {
+    if (!trimmed.name || !trimmed.team) return false;
+    const cost = Number(trimmed.projectCost);
+    if (!Number.isFinite(cost) || cost < 0) return false;
+    return true;
+  }, [trimmed]);
 
   const handleChange =
     (field: keyof DraftProject) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       setDraft((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
@@ -95,20 +90,19 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
 
     try {
       const payload: Project = {
-  id: generateProjectId(),
-  name: trimmed.name,
-  team: trimmed.team,
-  projectCost: Number(trimmed.projectCost) || 0,
-  developer: trimmed.developer,
-  city: trimmed.city,
-  startDate: trimmed.startDate,
-  endDate: trimmed.endDate,
-  projectSize: trimmed.projectSize,
-  siteEngineer: trimmed.siteEngineer,
-  designer: trimmed.designer,
-  createdAt: Date.now(),
-};
-
+        id: generateProjectId(),
+        name: trimmed.name,
+        team: trimmed.team as "Team 1" | "Team 2",
+        projectCost: Number(trimmed.projectCost) || 0,
+        developer: trimmed.developer,
+        city: trimmed.city,
+        startDate: trimmed.startDate,
+        endDate: trimmed.endDate,
+        projectSize: trimmed.projectSize,
+        siteEngineer: trimmed.siteEngineer,
+        designer: trimmed.designer,
+        createdAt: Date.now(),
+      };
 
       await upsertProject(payload);
       setDraft(initialDraft);
@@ -122,9 +116,9 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-3xl rounded-xl border border-[#3a3a3a] bg-[#1f1f1f] p-6 shadow-xl">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[#e5e5e5]">Create Project</h2>
           <button
             onClick={onClose}
@@ -136,8 +130,8 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
 
         {error && <div className="text-[#f87171] text-sm mb-3">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Project Name">
               <Input
                 value={draft.name}
@@ -149,13 +143,15 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
             </FormField>
 
             <FormField label="Team">
-              <Input
+              <select
                 value={draft.team}
                 onChange={handleChange("team")}
-                placeholder="Enter team name"
-                className="input-dark"
-                required
-              />
+                className="bg-[#1f1f1f] border border-[#3a3a3a] rounded-md px-3 py-2 text-sm text-[#e5e5e5] focus:outline-none focus:ring-1 focus:ring-[#4f4f4f]"
+              >
+                <option value="">Select team</option>
+                <option value="Team 1">Team 1</option>
+                <option value="Team 2">Team 2</option>
+              </select>
             </FormField>
 
             <FormField label="Developer">
@@ -204,23 +200,22 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
             </FormField>
 
             <FormField label="Site Engineer">
-  <Input
-    value={draft.siteEngineer ?? ""}
-    onChange={handleChange("siteEngineer")}
-    placeholder="Site engineer name"
-    className="input-dark"
-  />
-</FormField>
+              <Input
+                value={draft.siteEngineer}
+                onChange={handleChange("siteEngineer")}
+                placeholder="Site engineer"
+                className="input-dark"
+              />
+            </FormField>
 
-<FormField label="Designer">
-  <Input
-    value={draft.designer ?? ""}
-    onChange={handleChange("designer")}
-    placeholder="Designer name"
-    className="input-dark"
-  />
-</FormField>
-
+            <FormField label="Designer">
+              <Input
+                value={draft.designer}
+                onChange={handleChange("designer")}
+                placeholder="Designer"
+                className="input-dark"
+              />
+            </FormField>
 
             <FormField label="Project Cost">
               <Input
@@ -228,7 +223,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
                 value={draft.projectCost}
                 onChange={handleChange("projectCost")}
                 placeholder="₱"
-                className="input-dark text-right"
+                className="text-right input-dark"
                 required
               />
             </FormField>
@@ -256,7 +251,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
   );
 }
 
-/* ----------------------------- Helper field ----------------------------- */
+/* Helper */
 function FormField({
   label,
   children,
@@ -266,7 +261,7 @@ function FormField({
 }) {
   return (
     <div className="flex flex-col">
-      <label className="mb-1 text-xs text-[#9ca3af]">{label}</label>
+      <label className="text-xs text-[#9ca3af] mb-1">{label}</label>
       {children}
     </div>
   );

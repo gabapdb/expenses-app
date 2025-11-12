@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Card from "@/components/ui/Card";
-import type { Project } from "@/hooks/projects/useProjects";
+import type { Project } from "@/domain/models";
+import { TEAM_OPTIONS, type TeamOption } from "@/config/teams";
 import ProjectEditModal from "@/features/projects/components/ProjectEditModal";
 import { useProjectExpenseBreakdown } from "@/hooks/expenses/useProjectExpenseBreakdown";
 import { peso } from "@/utils/expenses";
@@ -11,9 +12,18 @@ interface ProjectInfoSectionProps {
   project: Project;
 }
 
+/* -------------------------------------------------------------------------- */
+/* 🧩 Component                                                               */
+/* -------------------------------------------------------------------------- */
 export default function ProjectInfoSection({ project }: ProjectInfoSectionProps) {
   const [editing, setEditing] = useState(false);
   const { totalAmount, loading, error } = useProjectExpenseBreakdown(project.id);
+
+  // ✅ Ensure the team value is always a valid TeamOption
+  const safeTeam: TeamOption =
+    TEAM_OPTIONS.includes(project.team as TeamOption)
+      ? (project.team as TeamOption)
+      : "Team 1";
 
   const runningBalance = totalAmount ?? 0;
   const projectCost = project.projectCost ?? 0;
@@ -43,8 +53,8 @@ export default function ProjectInfoSection({ project }: ProjectInfoSectionProps)
             {/* Column 1 */}
             <div className="flex flex-col gap-4 px-4">
               <Field label="Project Name" value={project.name} />
+              <Field label="Team" value={safeTeam} />
               <Field label="Developer" value={project.developer ?? "—"} />
-              <Field label="City" value={project.city ?? "—"} />
             </div>
 
             {/* Column 2 */}
@@ -74,7 +84,7 @@ export default function ProjectInfoSection({ project }: ProjectInfoSectionProps)
 
             {/* Column 3 */}
             <div className="flex flex-col gap-4 px-4">
-              <Field label="Team" value={project.team ?? "—"} />
+              <Field label="City" value={project.city ?? "—"} />
               <Field label="Site Engineer" value={project.siteEngineer ?? "—"} />
               <Field label="Designer" value={project.designer ?? "—"} />
             </div>
@@ -93,14 +103,7 @@ export default function ProjectInfoSection({ project }: ProjectInfoSectionProps)
         <ProjectEditModal
           project={{
             ...project,
-            team: project.team ?? "",
-            developer: project.developer ?? "",
-            city: project.city ?? "",
-            projectSize: project.projectSize ?? "",
-            siteEngineer: project.siteEngineer ?? "",
-            designer: project.designer ?? "",
-            startDate: project.startDate ?? "",
-            endDate: project.endDate ?? "",
+            team: safeTeam, // ✅ Ensure type consistency in modal too
             createdAt: project.createdAt ?? 0,
           }}
           onClose={() => setEditing(false)}
@@ -126,28 +129,17 @@ function Field({
   return (
     <div className="relative group">
       <div className="text-xs text-[#9ca3af] mb-1">{label}</div>
-      <div
-        className={`font-semibold tracking-tight ${valueClass}`}
-      >
-        {value}
-      </div>
+      <div className={`font-semibold tracking-tight ${valueClass}`}>{value}</div>
 
       {tooltip && (
         <div
           className="
-            absolute
-            bottom-full left-0 mb-1
-            hidden
-            group-hover:block
-            text-[11px]
-            text-gray-200
-            bg-[#2a2a2a]
-            border border-[#3a3a3a]
-            rounded-md
-            px-2 py-1
-            whitespace-nowrap
-            z-10
-            shadow-lg
+            absolute bottom-full left-0 mb-1
+            hidden group-hover:block
+            text-[11px] text-gray-200
+            bg-[#2a2a2a] border border-[#3a3a3a]
+            rounded-md px-2 py-1 whitespace-nowrap
+            z-10 shadow-lg
           "
         >
           {tooltip}
@@ -163,9 +155,8 @@ function formatDate(date?: string): string {
   return !isNaN(parsed.getTime())
     ? parsed.toLocaleDateString("en-US", {
         year: "numeric",
-        month: "short", // ✅ allowed — the error was due to 'year: "short"' earlier
+        month: "short",
         day: "numeric",
-      } as Intl.DateTimeFormatOptions)
+      })
     : "—";
 }
-

@@ -11,6 +11,7 @@ import ProjectCreateModal from "@/features/projects/components/ProjectCreateModa
 import ProjectEditModal from "@/features/projects/components/ProjectEditModal";
 import { useProjects, type Project } from "@/hooks/projects/useProjects";
 import { peso } from "@/utils/format";
+import { normalizeTeam } from "@/utils/normalizeTeam";
 import "@/styles/dashboard.css";
 
 export default function ProjectsPage() {
@@ -71,7 +72,7 @@ export default function ProjectsPage() {
         <ProjectEditModal
           project={{
             ...editingProject,
-            team: editingProject.team ?? "",
+            team: normalizeTeam(editingProject.team),
             developer: editingProject.developer ?? "",
             city: editingProject.city ?? "",
             projectSize: editingProject.projectSize ?? "",
@@ -88,7 +89,7 @@ export default function ProjectsPage() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Subcomponents                                                              */
+/* Subcomponents, helpers, skeletons remain unchanged below                   */
 /* -------------------------------------------------------------------------- */
 
 function ProjectCard({
@@ -103,9 +104,8 @@ function ProjectCard({
     typeof project.projectCost === "number" ? peso(project.projectCost) : "—";
 
   return (
-    <Link href={`/projects/${project.id}`} className="group block h-full">
+    <Link href={`/projects/${project.id}`} className="block h-full group">
       <Card className="relative flex flex-col justify-between h-full rounded-2xl border border-[#3a3a3a] bg-[#1f1f1f] p-6 shadow-sm transition-all duration-200 hover:-translate-y-[3px] hover:border-[#4b4b4b] hover:bg-[#252525] hover:shadow-md">
-        
         {/* Edit Button - top right */}
         <button
           onClick={(e) => {
@@ -148,7 +148,7 @@ function ProjectCard({
             </p>
           )}
           {timeline && (
-            <p className="flex items-center gap-2 text-xs uppercase tracking-wide">
+            <p className="flex items-center gap-2 text-xs tracking-wide uppercase">
               <CalendarDays size={12} />
               {timeline}
             </p>
@@ -172,14 +172,9 @@ function ProjectCard({
   );
 }
 
-
-
-/* --------------------------- Helper functions --------------------------- */
-
 function buildTimeline(start?: string, end?: string) {
   const formattedStart = formatDate(start);
   const formattedEnd = formatDate(end);
-
   if (!formattedStart && !formattedEnd) return null;
   if (formattedStart && formattedEnd) return `${formattedStart} – ${formattedEnd}`;
   return formattedStart ?? formattedEnd;
@@ -189,15 +184,12 @@ function formatDate(input?: string) {
   if (!input) return null;
   const date = new Date(input);
   if (Number.isNaN(date.getTime())) return null;
-
   return new Intl.DateTimeFormat("en-PH", {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(date);
 }
-
-/* --------------------------- Skeleton & Empty --------------------------- */
 
 function ProjectsSkeleton() {
   return (
