@@ -59,7 +59,7 @@ export default function ExpensesTable({
               ].map((h) => (
                 <th
                   key={h}
-                  className="p-2 text-[#9ca3af] text-center font-normal"
+                  className="p-2 text-[#9ca3af] text-left font-normal"
                 >
                   {h}
                 </th>
@@ -74,21 +74,21 @@ export default function ExpensesTable({
                 onClick={() => onEdit(e)}
                 className="border-b border-[#3a3a3a] hover:bg-[#2a2a2a] transition-colors cursor-pointer"
               >
-                <td className="p-2 text-center">
+                <td className="p-2 text-left">
                   {projects.find((p) => p.id === e.projectId)?.name || "—"}
                 </td>
-                <td className="p-2 text-center">{fmtDateInput(e.invoiceDate)}</td>
-                <td className="p-2 text-center">{fmtDateInput(e.datePaid)}</td>
-                <td className="p-2 text-center">{e.modeOfPayment || "—"}</td>
-                <td className="p-2 text-center">{e.payee || "—"}</td>
-                <td className="p-2 text-center">{e.category || "—"}</td>
-                <td className="p-2 text-center">{e.subCategory || "—"}</td>
-                <td className="p-2 text-center">{e.details || "—"}</td>
-                <td className="p-2 text-right">{peso(e.amount)}</td>
+                <td className="p-2 text-left">{fmtDateInput(e.invoiceDate)}</td>
+                <td className="p-2 text-left">{fmtDateInput(e.datePaid)}</td>
+                <td className="p-2 text-left">{e.modeOfPayment || "—"}</td>
+                <td className="p-2 text-left">{e.payee || "—"}</td>
+                <td className="p-2 text-left">{e.category || "—"}</td>
+                <td className="p-2 text-left">{e.subCategory || "—"}</td>
+                <td className="p-2 text-left">{e.details || "—"}</td>
+                <td className="p-2 text-left">{peso(e.amount)}</td>
 
                 {/* Paid toggle */}
                 <td
-                  className="p-2 text-center"
+                  className="p-2 text-left"
                   onClick={(evt) => evt.stopPropagation()}
                 >
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -105,7 +105,7 @@ export default function ExpensesTable({
 
                 {/* Delete Button */}
                 <td
-                  className="p-2 text-center"
+                  className="p-2 text-left"
                   onClick={(evt) => evt.stopPropagation()}
                 >
                   <Button

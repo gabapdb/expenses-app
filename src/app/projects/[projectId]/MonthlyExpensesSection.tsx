@@ -69,9 +69,7 @@ export default function MonthlyExpensesSection({
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between border-b border-[#3a3a3a] pb-2">
-        <h2 className="text-lg font-semibold text-[#e5e5e5]">Monthly Expenses</h2>
-      </div>
+  
 
       {loading && <div className="text-[#9ca3af] text-sm">Loading expenses…</div>}
       {error && <div className="text-[#f87171] text-sm">{error}</div>}

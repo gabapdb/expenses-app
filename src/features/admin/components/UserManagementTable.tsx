@@ -36,33 +36,42 @@ export default function UserManagementTable() {
     };
   }, []);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const snap = await getDocs(collection(db, "users"));
-      if (!isMountedRef.current) return;
-      const list: UserRecord[] = snap.docs.map((d) => ({
-        id: d.id,
-        email: d.data().email,
-        displayName: d.data().displayName ?? "",
-        role: d.data().role ?? "viewer",
-      }));
-      setUsers(list);
-    } catch (err) {
-      console.error("Failed to load users", err);
-      if (!isMountedRef.current) return;
-      setError("We couldn't load the user list. Please try again.");
-    } finally {
-      if (!isMountedRef.current) return;
-      setLoading(false);
-    }
-  }, []);
-
-  /* --------------------------- Fetch users on mount -------------------------- */
+  /* -------------------------------------------------------------------------- */
+  /* ✅ FIXED: Fetch users safely after Firestore initializes                   */
+  /* -------------------------------------------------------------------------- */
   useEffect(() => {
-    void loadUsers();
-  }, [loadUsers]);
+    if (!db) return; // Prevent running before Firestore is initialized
+
+    let isMounted = true;
+
+    async function fetchUsers() {
+      setLoading(true);
+      setError(null);
+      try {
+        const snap = await getDocs(collection(db, "users"));
+        if (!isMounted) return;
+        const list: UserRecord[] = snap.docs.map((d) => ({
+          id: d.id,
+          email: d.data().email,
+          displayName: d.data().displayName ?? "",
+          role: d.data().role ?? "viewer",
+        }));
+        setUsers(list);
+      } catch (err) {
+        console.error("Failed to load users", err);
+        if (isMounted)
+          setError("We couldn't load the user list. Please try again.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    fetchUsers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   /* ------------------------------ Update Role ------------------------------- */
   async function handleRoleChange(uid: string, newRole: Role) {
@@ -98,7 +107,7 @@ export default function UserManagementTable() {
       <Card className="p-6 border border-[#3a3a3a] bg-[#1f1f1f] rounded-xl text-[#fca5a5] text-sm flex flex-col gap-4">
         <div>{error}</div>
         <button
-          onClick={loadUsers}
+          onClick={() => location.reload()}
           className="self-start rounded-md border border-[#fca5a5]/40 px-3 py-1.5 text-xs font-medium text-[#fca5a5] hover:bg-[#fca5a5]/10 transition-colors"
         >
           Try again

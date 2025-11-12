@@ -42,7 +42,6 @@ export default function RequirementsSection({ projectId }: RequirementsSectionPr
 
   return (
     <section className="space-y-6">
-      <h2 className="text-xl font-semibold text-white">Requirements</h2>
 
       {/* Add Requirement Form */}
       <AddRequirementForm

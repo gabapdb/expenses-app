@@ -183,23 +183,7 @@ export default function BreakdownOfCostsSection({
   /* ------------------------------------------------------------------------ */
   return (
     <section className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-[#3a3a3a] pb-2">
-        <h2 className="text-lg font-semibold text-[#e5e5e5]">Breakdown of Costs</h2>
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-[#9ca3af]">Last updated: {lastUpdated}</span>
-          )}
-          <button
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-2 text-sm text-[#d1d5db] hover:text-white transition disabled:opacity-50"
-          >
-            <RotateCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            {loading ? "Refreshing…" : "Refresh"}
-          </button>
-        </div>
-      </div>
+     
 
       {/* Tabs */}
       <div className="flex gap-4 border-b border-[#3a3a3a]">
@@ -224,8 +208,8 @@ export default function BreakdownOfCostsSection({
           <table className="min-w-full text-sm text-[#d1d5db] border-collapse">
             <thead className="bg-[#262626] border-b border-[#3a3a3a]">
               <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium">Subcategory</th>
-                <th className="px-4 py-2 text-right text-sm font-medium">Total</th>
+                <th className="px-4 py-2 text-sm font-medium text-left">Subcategory</th>
+                <th className="px-4 py-2 text-sm font-medium text-right">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -248,7 +232,7 @@ export default function BreakdownOfCostsSection({
               <tr>
                 <td className="px-4 py-2 text-[#9ca3af]">CE</td>
                 <td
-                  className="px-4 py-2 text-right cursor-pointer rounded-md"
+                  className="px-4 py-2 text-right rounded-md cursor-pointer"
                   onClick={() => {
                     setEditingKey("carpentry");
                     setDraft(cabCE);
@@ -294,13 +278,13 @@ export default function BreakdownOfCostsSection({
           <table className="min-w-full text-sm text-[#d1d5db] border-collapse">
             <thead className="bg-[#262626] border-b border-[#3a3a3a]">
               <tr>
-                <th className="px-4 py-2 text-left font-medium">Trade</th>
-                <th className="px-4 py-2 text-right font-medium">Materials</th>
-                <th className="px-4 py-2 text-right font-medium">Salary</th>
-                <th className="px-4 py-2 text-right font-medium">Total</th>
-                <th className="px-4 py-2 text-right font-medium">CE</th>
-                <th className="px-4 py-2 text-right font-medium">Profit</th>
-                <th className="px-4 py-2 text-right font-medium">% Profit</th>
+                <th className="px-4 py-2 font-medium text-left">Trade</th>
+                <th className="px-4 py-2 font-medium text-right">Materials</th>
+                <th className="px-4 py-2 font-medium text-right">Salary</th>
+                <th className="px-4 py-2 font-medium text-right">Total</th>
+                <th className="px-4 py-2 font-medium text-right">CE</th>
+                <th className="px-4 py-2 font-medium text-right">Profit</th>
+                <th className="px-4 py-2 font-medium text-right">% Profit</th>
               </tr>
             </thead>
             <tbody>
@@ -382,8 +366,8 @@ export default function BreakdownOfCostsSection({
           <table className="min-w-full text-sm text-[#d1d5db] border-collapse">
             <thead className="bg-[#262626] border-b border-[#3a3a3a]">
               <tr>
-                <th className="px-4 py-2 text-left font-medium">Subcategory</th>
-                <th className="px-4 py-2 text-right font-medium">Total</th>
+                <th className="px-4 py-2 font-medium text-left">Subcategory</th>
+                <th className="px-4 py-2 font-medium text-right">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -403,7 +387,7 @@ export default function BreakdownOfCostsSection({
               <tr>
                 <td className="px-4 py-2 text-[#9ca3af]">CE</td>
                 <td
-                  className="px-4 py-2 text-right cursor-pointer rounded-md"
+                  className="px-4 py-2 text-right rounded-md cursor-pointer"
                   onClick={() => {
                     setEditingKey("transport");
                     setDraft(transCE);

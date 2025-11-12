@@ -88,7 +88,7 @@ export default function ExpensesGrid({
   /* 🖼️ Render                                                              */
   /* ---------------------------------------------------------------------- */
   return (
-    <div className="space-y-8 text-[#e5e5e5]">
+    <div className="space-y-2 text-[#e5e5e5]">
       <ExpenseForm
         yyyyMM={yyyyMM}
         projects={projects}
@@ -97,14 +97,14 @@ export default function ExpensesGrid({
       />
 
       {/* --- Month Tabs + Year Picker --- */}
-      <div className="flex items-end justify-between border-b border-[#3a3a3a] bg-[#1f1f1f]">
+      <div className="flex items-end justify-between border-b border-[#3a3a3a] bg-[#121212]">
         <MonthTabs
           months={months}
           currentMonth={selectedMonth}
           onChange={(val: string) => onMonthChange(val)}
         />
 
-        <div className="px-4 pb-[6px]">
+        <div className="px-0 pb-[2px]">
           {loadingYears ? (
             <div className="text-[#9ca3af] text-sm">Loading…</div>
           ) : yearError ? (
