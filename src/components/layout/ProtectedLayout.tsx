@@ -1,6 +1,6 @@
 "use client";
 
-import { useAuthUser } from "@/hooks/auth/useAuthUser";
+import { useAuth } from "@/context/AuthContext";
 
 interface ProtectedLayoutProps {
   children: React.ReactNode;
@@ -8,7 +8,7 @@ interface ProtectedLayoutProps {
 
 /** Wraps protected routes, waits for auth before rendering */
 export default function ProtectedLayout({ children }: ProtectedLayoutProps) {
-  const { user, loading } = useAuthUser();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (

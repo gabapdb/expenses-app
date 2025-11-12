@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
 import { Role } from "@/core/auth";
@@ -26,11 +26,22 @@ export default function UserManagementTable() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
 
-  /* --------------------------- Fetch users on mount -------------------------- */
   useEffect(() => {
-    async function fetchUsers() {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
       const snap = await getDocs(collection(db, "users"));
+      if (!isMountedRef.current) return;
       const list: UserRecord[] = snap.docs.map((d) => ({
         id: d.id,
         email: d.data().email,
@@ -38,19 +49,39 @@ export default function UserManagementTable() {
         role: d.data().role ?? "viewer",
       }));
       setUsers(list);
+    } catch (err) {
+      console.error("Failed to load users", err);
+      if (!isMountedRef.current) return;
+      setError("We couldn't load the user list. Please try again.");
+    } finally {
+      if (!isMountedRef.current) return;
       setLoading(false);
     }
-    fetchUsers();
   }, []);
+
+  /* --------------------------- Fetch users on mount -------------------------- */
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
 
   /* ------------------------------ Update Role ------------------------------- */
   async function handleRoleChange(uid: string, newRole: Role) {
+    setUpdateError(null);
     setSaving(uid);
-    await updateDoc(doc(db, "users", uid), { role: newRole });
-    setUsers((prev) =>
-      prev.map((u) => (u.id === uid ? { ...u, role: newRole } : u))
-    );
-    setSaving(null);
+    try {
+      await updateDoc(doc(db, "users", uid), { role: newRole });
+      if (!isMountedRef.current) return;
+      setUsers((prev) =>
+        prev.map((u) => (u.id === uid ? { ...u, role: newRole } : u))
+      );
+    } catch (err) {
+      console.error("Failed to update user role", err);
+      if (!isMountedRef.current) return;
+      setUpdateError("Failed to update the user role. Please try again.");
+    } finally {
+      if (!isMountedRef.current) return;
+      setSaving(null);
+    }
   }
 
   /* ----------------------------- Loading State ------------------------------ */
@@ -62,12 +93,31 @@ export default function UserManagementTable() {
       </Card>
     );
 
+  if (error)
+    return (
+      <Card className="p-6 border border-[#3a3a3a] bg-[#1f1f1f] rounded-xl text-[#fca5a5] text-sm flex flex-col gap-4">
+        <div>{error}</div>
+        <button
+          onClick={loadUsers}
+          className="self-start rounded-md border border-[#fca5a5]/40 px-3 py-1.5 text-xs font-medium text-[#fca5a5] hover:bg-[#fca5a5]/10 transition-colors"
+        >
+          Try again
+        </button>
+      </Card>
+    );
+
   /* ------------------------------- Main Table ------------------------------- */
   return (
     <Card className="p-6 border border-[#3a3a3a] bg-[#1f1f1f] rounded-2xl text-[#e5e5e5] shadow-sm">
       <h2 className="mb-6 text-lg font-semibold tracking-wide text-[#f3f4f6]">
         Manage User Roles
       </h2>
+
+      {updateError && (
+        <div className="mb-4 rounded-md border border-[#5c2a2a] bg-[#2a1f1f] px-3 py-2 text-sm text-[#fca5a5]">
+          {updateError}
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-[#2d2d2d]">
         <table className="min-w-full text-sm">

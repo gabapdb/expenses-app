@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuthUser } from "@/hooks/auth/useAuthUser";
+import { useAuth } from "@/context/AuthContext";
 import UserManagementTable from "@/features/admin/components/UserManagementTable";
 
 export default function AdminPage() {
-  const { user, loading } = useAuthUser();
+  const { user, loading } = useAuth();
 
   if (loading) return <p>Loading…</p>;
   if (!user) return <p>Please log in.</p>;

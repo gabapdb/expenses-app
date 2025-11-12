@@ -1,11 +1,11 @@
 "use client";
 
-import { useAuthUser } from "@/hooks/auth/useAuthUser";
 import { loginWithGoogle, logout } from "@/core/auth";
 import Button from "@/components/ui/Button";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AuthButtons() {
-  const { user, loading } = useAuthUser();
+  const { user, loading } = useAuth();
 
   if (loading)
     return <div className="text-sm text-[#9ca3af]">Checking session…</div>;
