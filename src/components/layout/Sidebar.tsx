@@ -6,12 +6,12 @@ import Link from "next/link";
 import { Home, Folder, DollarSign, BarChart2, Settings, LogOut } from "lucide-react";
 import { toYYYYMM } from "@/utils/time";
 import "@/styles/sidebar.css";
-import { useAuthUser } from "@/hooks/auth/useAuthUser";
 import { logout } from "@/core/auth";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "@/core/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { Role } from "@/core/auth";
+import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
   expanded: boolean;
@@ -32,7 +32,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar({ expanded, onEnter, onLeave }: SidebarProps) {
-  const { user } = useAuthUser();
+  const { user } = useAuth();
   const [role, setRole] = useState<Role | null>(user?.role ?? null);
 
   /* ------------------------------------------------------------------------ */
@@ -50,8 +50,19 @@ export default function Sidebar({ expanded, onEnter, onLeave }: SidebarProps) {
     return () => unsub();
   }, [user]);
 
-  const visibleLinks = NAV_ITEMS.filter(
-    (item) => !role || item.roles.includes(role)
+  const effectiveRole = useMemo<Role | null>(() => {
+    if (!user) return null;
+    return role ?? user.role;
+  }, [role, user]);
+
+  const visibleLinks = useMemo(
+    () =>
+      user
+        ? NAV_ITEMS.filter(
+            (item) => !effectiveRole || item.roles.includes(effectiveRole)
+          )
+        : [],
+    [effectiveRole, user]
   );
 
   return (
@@ -105,7 +116,9 @@ export default function Sidebar({ expanded, onEnter, onLeave }: SidebarProps) {
               <div className="truncate w-full text-[#d1d5db]">
                 {user.displayName || user.email}
               </div>
-              <div className="capitalize text-[#9ca3af]">Role: {role}</div>
+              <div className="capitalize text-[#9ca3af]">
+                Role: {effectiveRole ?? "—"}
+              </div>
               <button
                 onClick={logout}
                 className="flex items-center gap-2 mt-2 px-2 py-1 border border-[#3a3a3a] rounded-md text-[#d1d5db] hover:bg-[#2a2a2a] transition-colors"

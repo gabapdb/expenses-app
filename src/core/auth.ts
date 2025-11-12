@@ -1,5 +1,10 @@
 // src/core/auth.ts
-import { onAuthStateChanged, signOut, signInWithPopup } from "firebase/auth";
+import {
+  onIdTokenChanged,
+  signOut,
+  signInWithPopup,
+  type User as FirebaseUser,
+} from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db, googleProvider } from "@/core/firebase";
 import { setFirebaseAuthCookie, clearFirebaseAuthCookie } from "@/core/authCookie";
@@ -17,14 +22,24 @@ export interface AppUser {
 /* 🧠 Listen to User Auth Changes                                              */
 /* -------------------------------------------------------------------------- */
 export function listenToUser(callback: (user: AppUser | null) => void) {
-  return onAuthStateChanged(auth, async (fbUser) => {
+  return onIdTokenChanged(auth, async (fbUser) => {
     if (!fbUser) {
       callback(null);
       clearFirebaseAuthCookie();
       return;
     }
 
-    const ref = doc(db, "users", fbUser.uid);
+    await setFirebaseAuthCookie(fbUser);
+
+    const user = await resolveUserWithRole(fbUser);
+    callback(user);
+  });
+}
+
+async function resolveUserWithRole(fbUser: FirebaseUser): Promise<AppUser> {
+  const ref = doc(db, "users", fbUser.uid);
+
+  try {
     const snap = await getDoc(ref);
 
     let role: Role = "viewer";
@@ -43,15 +58,21 @@ export function listenToUser(callback: (user: AppUser | null) => void) {
       });
     }
 
-    await setFirebaseAuthCookie();
-
-    callback({
+    return {
       uid: fbUser.uid,
       email: fbUser.email,
       displayName: fbUser.displayName,
       role,
-    });
-  });
+    };
+  } catch (error) {
+    console.error("Failed to resolve user role", error);
+    return {
+      uid: fbUser.uid,
+      email: fbUser.email,
+      displayName: fbUser.displayName,
+      role: "viewer",
+    };
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -59,7 +80,7 @@ export function listenToUser(callback: (user: AppUser | null) => void) {
 /* -------------------------------------------------------------------------- */
 export async function loginWithGoogle() {
   const result = await signInWithPopup(auth, googleProvider);
-  await setFirebaseAuthCookie(); // 🔥 Keep cookie synced for middleware
+  await setFirebaseAuthCookie(result.user); // 🔥 Keep cookie synced for middleware
   return result.user;
 }
 
