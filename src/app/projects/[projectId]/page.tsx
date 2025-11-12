@@ -52,7 +52,7 @@ export default function ProjectDetailPage() {
       </div>
 
       {/* Tabs Header */}
-      <div className="flex gap-4 border-b border-[#3a3a3a] bg-[#1f1f1f]">
+      <div className="flex gap-4 border-b border-[#3a3a3a] bg-[#121212]">
         {[
           { key: "monthly", label: "Monthly Expenses" },
           { key: "breakdown", label: "Breakdown of Costs" },

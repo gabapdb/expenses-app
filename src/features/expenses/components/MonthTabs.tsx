@@ -16,7 +16,7 @@ export interface MonthTabsProps {
 /* -------------------------------------------------------------------------- */
 export default function MonthTabs({ months, currentMonth, onChange }: MonthTabsProps) {
   return (
-    <div className="flex flex-wrap items-end gap-1 border-[#3a3a3a] bg-[#1f1f1f]">
+    <div className="flex flex-wrap items-end gap-1 border-[#3a3a3a] bg-[#121212]">
       {months.map((m) => {
         const isActive = m.value.slice(4, 6) === currentMonth;
 

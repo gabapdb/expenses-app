@@ -162,7 +162,7 @@ export default function ExpenseForm({
 
   return (
     <div className="rounded-xl border border-[#3a3a3a] bg-[#1f1f1f] p-6 shadow-sm space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         {/* Project */}
         <FormField label="Project">
           <select
@@ -305,7 +305,7 @@ export default function ExpenseForm({
             onChange={(e) =>
               setDraft({ ...draft, amount: Number(e.target.value || 0) })
             }
-            className="input-dark text-right"
+            className="text-right input-dark"
           />
         </FormField>
 
