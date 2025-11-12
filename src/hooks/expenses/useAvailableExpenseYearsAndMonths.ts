@@ -18,6 +18,72 @@ interface UseAvailableExpenseYearsAndMonthsResult {
   error: string | null;
 }
 
+interface YearMonthCache {
+  info: YearMonthInfo[];
+}
+
+let cachedYearMonthInfo: YearMonthCache | null = null;
+let cachedYearMonthError: string | null = null;
+let pendingYearMonthRequest: Promise<YearMonthCache> | null = null;
+
+async function fetchYearMonthInfo(): Promise<YearMonthCache> {
+  const metaRef = doc(db, "metadata", "expenseYears");
+  const metaSnap = await getDoc(metaRef);
+  const data = metaSnap.data();
+  if (!data || !Array.isArray(data.years)) {
+    throw new Error("Missing or invalid /metadata/expenseYears document");
+  }
+
+  const years: number[] = data.years;
+
+  const expensesRef = collection(db, "expenses");
+  const snapshot = await getDocs(expensesRef);
+
+  const monthsByYear = new Map<number, Set<string>>();
+  snapshot.forEach((docSnap) => {
+    const id = docSnap.id;
+    if (!/^\d{6}$/.test(id)) {
+      return;
+    }
+
+    const year = Number(id.slice(0, 4));
+    if (!Number.isFinite(year)) {
+      return;
+    }
+
+    if (!monthsByYear.has(year)) {
+      monthsByYear.set(year, new Set());
+    }
+    monthsByYear.get(year)!.add(id);
+  });
+
+  const allYears = Array.from(new Set([...years, ...monthsByYear.keys()]))
+    .sort((a, b) => a - b)
+    .map((year) => ({
+      year,
+      months: Array.from(monthsByYear.get(year) ?? [])
+        .sort((a, b) => a.localeCompare(b)),
+    }));
+
+  const sorted = allYears.sort((a, b) => b.year - a.year);
+
+  return { info: sorted };
+}
+
+export function invalidateAvailableExpenseYearsCache(): void {
+  cachedYearMonthInfo = null;
+  cachedYearMonthError = null;
+  pendingYearMonthRequest = null;
+}
+
+function scheduleMicrotask(fn: () => void): void {
+  if (typeof queueMicrotask === "function") {
+    queueMicrotask(fn);
+  } else {
+    Promise.resolve().then(fn);
+  }
+}
+
 /* -------------------------------------------------------------------------- */
 /* ⚙️ Hook                                                                    */
 /* -------------------------------------------------------------------------- */
@@ -27,80 +93,79 @@ interface UseAvailableExpenseYearsAndMonthsResult {
  * with structure: { years: [2024, 2025, 2026, ...] }
  */
 export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAndMonthsResult {
-  const [info, setInfo] = useState<YearMonthInfo[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<YearMonthInfo[]>(
+    () => cachedYearMonthInfo?.info ?? []
+  );
+  const [loading, setLoading] = useState<boolean>(!cachedYearMonthInfo);
+  const [error, setError] = useState<string | null>(cachedYearMonthError);
 
   useEffect(() => {
     let active = true;
-
-    async function loadData() {
-      try {
-        setLoading(true);
+    if (cachedYearMonthInfo) {
+      scheduleMicrotask(() => {
+        if (!active) return;
+        setInfo(cachedYearMonthInfo!.info);
         setError(null);
+        setLoading(false);
+      });
 
-        // 1️⃣ Fetch list of available years
-        const metaRef = doc(db, "metadata", "expenseYears");
-        const metaSnap = await getDoc(metaRef);
-        const data = metaSnap.data();
-        if (!data || !Array.isArray(data.years)) {
-          throw new Error("Missing or invalid /metadata/expenseYears document");
-        }
-
-        const years: number[] = data.years;
-
-        // 2️⃣ Fetch the expenses collection once and bucket doc IDs by year
-        const expensesRef = collection(db, "expenses");
-        const snapshot = await getDocs(expensesRef);
-
-        const monthsByYear = new Map<number, Set<string>>();
-        snapshot.forEach((docSnap) => {
-          const id = docSnap.id;
-          if (!/^\d{6}$/.test(id)) {
-            return;
-          }
-
-          const year = Number(id.slice(0, 4));
-          if (!Number.isFinite(year)) {
-            return;
-          }
-
-          if (!monthsByYear.has(year)) {
-            monthsByYear.set(year, new Set());
-          }
-          monthsByYear.get(year)!.add(id);
-        });
-
-        // Ensure metadata years without documents are still represented
-        const allYears = Array.from(
-          new Set([...years, ...monthsByYear.keys()])
-        ).sort((a, b) => a - b);
-
-        const fetched: YearMonthInfo[] = allYears.map((year) => ({
-          year,
-          months: Array.from(monthsByYear.get(year) ?? [])
-            .sort((a, b) => a.localeCompare(b)),
-        }));
-
-        if (active) {
-          const sorted = fetched.sort((a, b) => b.year - a.year);
-
-          setInfo(sorted);
-          setLoading(false);
-          setError(null);
-        }
-      } catch (err) {
-        console.error("[useAvailableExpenseYearsAndMonths] Error:", err);
-        if (active) {
-          setError(
-            err instanceof Error ? err.message : "Unknown error fetching years"
-          );
-          setLoading(false);
-        }
-      }
+      return () => {
+        active = false;
+      };
     }
 
-    void loadData();
+    if (cachedYearMonthError) {
+      scheduleMicrotask(() => {
+        if (!active) return;
+        setError(cachedYearMonthError);
+        setLoading(false);
+      });
+
+      return () => {
+        active = false;
+      };
+    }
+
+    scheduleMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      setError(null);
+    });
+
+    const pending = pendingYearMonthRequest ?? fetchYearMonthInfo();
+    pendingYearMonthRequest = pending;
+
+    pending
+      .then((result) => {
+        cachedYearMonthInfo = result;
+        cachedYearMonthError = null;
+
+        if (!active) return;
+
+        setInfo(result.info);
+        setError(null);
+      })
+      .catch((err) => {
+        console.error("[useAvailableExpenseYearsAndMonths] Error:", err);
+        const message =
+          err instanceof Error ? err.message : "Unknown error fetching years";
+        cachedYearMonthError = message;
+
+        if (!active) return;
+
+        setError(message);
+        setInfo([]);
+      })
+      .finally(() => {
+        if (pendingYearMonthRequest === pending) {
+          pendingYearMonthRequest = null;
+        }
+
+        if (active) {
+          setLoading(false);
+        }
+      });
+
     return () => {
       active = false;
     };
