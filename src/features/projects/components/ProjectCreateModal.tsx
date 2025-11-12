@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { upsertProject } from "@/data/projects.repo";
 import type { Project } from "@/domain/models";
+import { TEAM_OPTIONS, type TeamOption } from "@/config/teams";
+import { normalizeTeam } from "@/utils/normalizeTeam";
 
 interface ProjectCreateModalProps {
   onClose: () => void;
@@ -12,7 +14,7 @@ interface ProjectCreateModalProps {
 
 interface DraftProject {
   name: string;
-  team: string;
+  team: TeamOption;
   projectCost: string;
   developer: string;
   city: string;
@@ -25,7 +27,7 @@ interface DraftProject {
 
 const initialDraft: DraftProject = {
   name: "",
-  team: "",
+  team: TEAM_OPTIONS[0],
   projectCost: "",
   developer: "",
   city: "",
@@ -55,7 +57,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
   const trimmed = useMemo(
     () => ({
       name: draft.name.trim(),
-      team: draft.team.trim(),
+      team: normalizeTeam(draft.team),
       developer: draft.developer.trim(),
       city: draft.city.trim(),
       projectSize: draft.projectSize.trim(),
@@ -69,7 +71,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
   );
 
   const canSave = useMemo(() => {
-    if (!trimmed.name || !trimmed.team) return false;
+    if (!trimmed.name || !TEAM_OPTIONS.includes(trimmed.team)) return false;
     const cost = Number(trimmed.projectCost);
     if (!Number.isFinite(cost) || cost < 0) return false;
     return true;
@@ -78,7 +80,11 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
   const handleChange =
     (field: keyof DraftProject) =>
     (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setDraft((prev) => ({ ...prev, [field]: event.target.value }));
+      const { value } = event.target;
+      setDraft((prev) => ({
+        ...prev,
+        [field]: field === "team" ? (value as TeamOption) : value,
+      }));
     };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -92,7 +98,7 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
       const payload: Project = {
         id: generateProjectId(),
         name: trimmed.name,
-        team: trimmed.team as "Team 1" | "Team 2",
+        team: trimmed.team,
         projectCost: Number(trimmed.projectCost) || 0,
         developer: trimmed.developer,
         city: trimmed.city,
@@ -148,9 +154,11 @@ export default function ProjectCreateModal({ onClose }: ProjectCreateModalProps)
                 onChange={handleChange("team")}
                 className="bg-[#1f1f1f] border border-[#3a3a3a] rounded-md px-3 py-2 text-sm text-[#e5e5e5] focus:outline-none focus:ring-1 focus:ring-[#4f4f4f]"
               >
-                <option value="">Select team</option>
-                <option value="Team 1">Team 1</option>
-                <option value="Team 2">Team 2</option>
+                {TEAM_OPTIONS.map((teamOption) => (
+                  <option key={teamOption} value={teamOption}>
+                    {teamOption}
+                  </option>
+                ))}
               </select>
             </FormField>
 

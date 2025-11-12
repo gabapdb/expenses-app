@@ -13,6 +13,8 @@ import { useProjectExpensesByYear } from "@/hooks/expenses/useProjectExpensesByY
 import type { Project } from "@/domain/models";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
+import { TEAM_OPTIONS, type TeamOption } from "@/config/teams";
+import { normalizeTeam } from "@/utils/normalizeTeam";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Types + Constants                                                       */
@@ -34,9 +36,27 @@ type CategoryTotals = Record<MainCategory, number>;
 type ProjectYearData = ReturnType<typeof useProjectExpensesByYear>;
 type ProjectYearEnvelope = { id: string } & ProjectYearData;
 
-const TEAM_COLOR: Record<string, string> = {
-  "1": "text-yellow-400",
-  "2": "text-blue-400",
+const TEAM_COLORS = [
+  "text-yellow-400",
+  "text-blue-400",
+  "text-green-400",
+  "text-purple-400",
+  "text-pink-400",
+  "text-orange-400",
+  "text-teal-400",
+];
+
+const TEAM_COLOR: Record<TeamOption, string> = TEAM_OPTIONS.reduce(
+  (acc, team, index) => {
+    acc[team] = TEAM_COLORS[index % TEAM_COLORS.length] ?? "text-gray-200";
+    return acc;
+  },
+  {} as Record<TeamOption, string>
+);
+
+const getTeamColor = (team?: string | null) => {
+  const normalized = normalizeTeam(team);
+  return TEAM_COLOR[normalized] ?? "text-gray-200";
 };
 
 /* -------------------------------------------------------------------------- */
@@ -64,9 +84,12 @@ export default function SummaryByMonth({ year }: SummaryByMonthProps) {
   const sortedProjects = useMemo(
     () =>
       [...projects].sort((a, b) => {
-        const t1 = a.team?.trim().replace(/Team\s*/i, "") ?? "2";
-        const t2 = b.team?.trim().replace(/Team\s*/i, "") ?? "2";
-        return Number(t1) - Number(t2);
+        const t1 = normalizeTeam(a.team);
+        const t2 = normalizeTeam(b.team);
+        return (
+          TEAM_OPTIONS.indexOf(t1) -
+          TEAM_OPTIONS.indexOf(t2)
+        );
       }),
     [projects]
   );
@@ -372,8 +395,7 @@ function ProjectRow({
     Others: byMonth[month]?.Others ?? 0,
   };
 
-  const teamNum = project.team?.trim().replace(/Team\s*/i, "") ?? "2";
-  const textColor = TEAM_COLOR[teamNum] ?? "text-gray-200";
+  const textColor = getTeamColor(project.team);
 
   return (
     <tr className="border-t border-[#2e2e2e] hover:bg-[#222] transition">

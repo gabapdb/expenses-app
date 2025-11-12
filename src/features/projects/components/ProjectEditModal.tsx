@@ -5,6 +5,8 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { upsertProject } from "@/data/projects.repo";
 import { ProjectSchema, type Project } from "@/domain/models";
+import { TEAM_OPTIONS, type TeamOption } from "@/config/teams";
+import { normalizeTeam } from "@/utils/normalizeTeam";
 
 interface ProjectEditModalProps {
   project: Project;
@@ -19,7 +21,7 @@ export default function ProjectEditModal({
 }: ProjectEditModalProps) {
   const [draft, setDraft] = useState<Project>({
     ...project,
-    team: project.team ?? "Team 1",
+    team: normalizeTeam(project.team),
     developer: project.developer ?? "",
     city: project.city ?? "",
     projectSize: project.projectSize ?? "",
@@ -38,7 +40,7 @@ export default function ProjectEditModal({
     () => ({
       ...draft,
       name: draft.name.trim(),
-      team: draft.team.trim() as "Team 1" | "Team 2",
+      team: normalizeTeam(draft.team),
       developer: draft.developer?.trim() ?? "",
       city: draft.city?.trim() ?? "",
       projectSize: draft.projectSize?.trim() ?? "",
@@ -52,7 +54,11 @@ export default function ProjectEditModal({
   );
 
   const canSave = useMemo(() => {
-    return trimmed.name && trimmed.team && trimmed.projectCost >= 0;
+    return (
+      Boolean(trimmed.name) &&
+      TEAM_OPTIONS.includes(trimmed.team) &&
+      trimmed.projectCost >= 0
+    );
   }, [trimmed]);
 
   const handleChange =
@@ -60,7 +66,12 @@ export default function ProjectEditModal({
       const value = e.target.value;
       setDraft((prev) => ({
         ...prev,
-        [field]: field === "projectCost" ? Number(value) : value,
+        [field]:
+          field === "projectCost"
+            ? Number(value)
+            : field === "team"
+            ? (value as TeamOption)
+            : value,
       }));
     };
 
@@ -119,8 +130,11 @@ export default function ProjectEditModal({
                 onChange={handleChange("team")}
                 className="bg-[#1f1f1f] border border-[#3a3a3a] rounded-md px-3 py-2 text-sm text-[#e5e5e5] focus:outline-none focus:ring-1 focus:ring-[#4f4f4f]"
               >
-                <option value="Team 1">Team 1</option>
-                <option value="Team 2">Team 2</option>
+                {TEAM_OPTIONS.map((teamOption) => (
+                  <option key={teamOption} value={teamOption}>
+                    {teamOption}
+                  </option>
+                ))}
               </select>
             </FormField>
 
