@@ -1,46 +1,36 @@
 "use client";
 
-import { signInWithGoogle, signOutUser } from "@/core/auth";
 import { useAuthUser } from "@/hooks/auth/useAuthUser";
+import { loginWithGoogle, logout } from "@/core/auth";
 import Button from "@/components/ui/Button";
 
 export default function AuthButtons() {
   const { user, loading } = useAuthUser();
 
-  if (loading) return null;
+  if (loading)
+    return <div className="text-sm text-[#9ca3af]">Checking session…</div>;
 
-  if (!user) {
+  if (user)
     return (
-      <Button
-        onClick={async () => {
-          try {
-            await signInWithGoogle();
-          } catch (err) {
-            console.error("Google sign-in failed:", err);
-          }
-        }}
-        className="bg-gray-900 text-white hover:bg-black"
-      >
-        Sign in with Google
-      </Button>
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-[#e5e5e5]">
+          {user.displayName || user.email} ({user.role})
+        </span>
+        <Button
+          onClick={logout}
+          className="bg-[#262626] text-white border border-[#3a3a3a] hover:bg-[#333]"
+        >
+          Logout
+        </Button>
+      </div>
     );
-  }
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="text-sm text-gray-700">{user.displayName}</span>
-      <Button
-        onClick={async () => {
-          try {
-            await signOutUser();
-          } catch (err) {
-            console.error("Sign-out failed:", err);
-          }
-        }}
-        className="bg-gray-200 text-gray-800 hover:bg-gray-300"
-      >
-        Sign out
-      </Button>
-    </div>
+    <Button
+      onClick={loginWithGoogle}
+      className="bg-[#1f1f1f] border border-[#3a3a3a] hover:bg-[#2a2a2a] text-[#e5e5e5]"
+    >
+      Login with Google
+    </Button>
   );
 }
