@@ -13,6 +13,9 @@ interface YearPickerProps {
   label?: string;
   className?: string;
   mode?: "expenses" | "projects" | "merged";
+  years?: number[];
+  loadingOverride?: boolean;
+  errorOverride?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -31,20 +34,44 @@ export default function YearPicker({
   label,
   className,
   mode = "merged",
+  years: providedYears,
+  loadingOverride,
+  errorOverride,
 }: YearPickerProps) {
-  const expense = useExpenseYears();
-  const project = useProjectYears();
+  const shouldFetch = typeof providedYears === "undefined";
+
+  const expense = useExpenseYears({
+    enabled: shouldFetch && mode !== "projects",
+  });
+  const project = useProjectYears({
+    enabled: shouldFetch && mode !== "expenses",
+  });
 
   const years = useMemo(() => {
+    if (!shouldFetch) {
+      const manualYears = providedYears ?? [];
+      const merged = new Set<number>(manualYears);
+      merged.add(value);
+      return Array.from(merged).sort((a, b) => b - a);
+    }
+
     const expYears = expense.years ?? [];
     const projYears = project.years ?? [];
     if (mode === "expenses") return expYears;
     if (mode === "projects") return projYears;
     return mergeYears(expYears, projYears);
-  }, [expense.years, project.years, mode]);
+  }, [shouldFetch, providedYears, value, expense.years, project.years, mode]);
 
-  const loading = expense.loading || project.loading;
-  const error = expense.error || project.error;
+  const loading =
+    typeof loadingOverride === "boolean"
+      ? loadingOverride
+      : shouldFetch && (expense.loading || project.loading);
+  const error =
+    typeof errorOverride !== "undefined"
+      ? errorOverride
+      : shouldFetch
+        ? expense.error || project.error
+        : null;
 
   return (
     <div className={`relative inline-block ${className ?? ""}`}>
