@@ -18,19 +18,18 @@ export default function ProjectEditModal({
   onSaved,
 }: ProjectEditModalProps) {
   const [draft, setDraft] = useState<Project>({
-  ...project,
-  team: project.team ?? "",
-  developer: project.developer ?? "",
-  city: project.city ?? "",
-  projectSize: project.projectSize ?? "",
-  siteEngineer: project.siteEngineer ?? "", // 🆕
-  designer: project.designer ?? "",         // 🆕
-  startDate: project.startDate ?? "",
-  endDate: project.endDate ?? "",
-  createdAt: project.createdAt ?? Date.now(),
-  projectCost: project.projectCost ?? 0,
-});
-
+    ...project,
+    team: project.team ?? "Team 1",
+    developer: project.developer ?? "",
+    city: project.city ?? "",
+    projectSize: project.projectSize ?? "",
+    siteEngineer: project.siteEngineer ?? "",
+    designer: project.designer ?? "",
+    startDate: project.startDate ?? "",
+    endDate: project.endDate ?? "",
+    createdAt: project.createdAt ?? Date.now(),
+    projectCost: project.projectCost ?? 0,
+  });
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +38,7 @@ export default function ProjectEditModal({
     () => ({
       ...draft,
       name: draft.name.trim(),
-      team: draft.team.trim(),
+      team: draft.team.trim() as "Team 1" | "Team 2",
       developer: draft.developer?.trim() ?? "",
       city: draft.city?.trim() ?? "",
       projectSize: draft.projectSize?.trim() ?? "",
@@ -48,7 +47,6 @@ export default function ProjectEditModal({
       siteEngineer: draft.siteEngineer?.trim() ?? "",
       designer: draft.designer?.trim() ?? "",
       projectCost: draft.projectCost,
-
     }),
     [draft]
   );
@@ -58,7 +56,7 @@ export default function ProjectEditModal({
   }, [trimmed]);
 
   const handleChange =
-    (field: keyof Project) => (e: ChangeEvent<HTMLInputElement>) => {
+    (field: keyof Project) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
       const value = e.target.value;
       setDraft((prev) => ({
         ...prev,
@@ -69,17 +67,14 @@ export default function ProjectEditModal({
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!canSave || saving) return;
-
     setSaving(true);
     setError(null);
-
     try {
       const parsed = ProjectSchema.parse({
         ...trimmed,
         updatedAt: Date.now(),
         createdAt: draft.createdAt ?? Date.now(),
       });
-
       await upsertProject(parsed);
       onSaved?.(parsed);
       onClose();
@@ -92,9 +87,9 @@ export default function ProjectEditModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="w-full max-w-3xl rounded-xl border border-[#3a3a3a] bg-[#1f1f1f] p-6 shadow-xl">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-[#e5e5e5]">Edit Project</h2>
           <button
             onClick={onClose}
@@ -106,33 +101,34 @@ export default function ProjectEditModal({
 
         {error && <div className="text-[#f87171] text-sm mb-3">{error}</div>}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Project Name">
               <Input
                 value={draft.name}
                 onChange={handleChange("name")}
-                placeholder="Project name"
+                placeholder="Enter project name"
                 className="input-dark"
                 required
               />
             </FormField>
 
             <FormField label="Team">
-              <Input
+              <select
                 value={draft.team}
                 onChange={handleChange("team")}
-                placeholder="Team"
-                className="input-dark"
-                required
-              />
+                className="bg-[#1f1f1f] border border-[#3a3a3a] rounded-md px-3 py-2 text-sm text-[#e5e5e5] focus:outline-none focus:ring-1 focus:ring-[#4f4f4f]"
+              >
+                <option value="Team 1">Team 1</option>
+                <option value="Team 2">Team 2</option>
+              </select>
             </FormField>
 
             <FormField label="Developer">
               <Input
                 value={draft.developer ?? ""}
                 onChange={handleChange("developer")}
-                placeholder="Developer"
+                placeholder="Developer name"
                 className="input-dark"
               />
             </FormField>
@@ -174,23 +170,22 @@ export default function ProjectEditModal({
             </FormField>
 
             <FormField label="Site Engineer">
-  <Input
-    value={draft.siteEngineer ?? ""}
-    onChange={handleChange("siteEngineer")}
-    placeholder="Site engineer"
-    className="input-dark"
-  />
-</FormField>
+              <Input
+                value={draft.siteEngineer ?? ""}
+                onChange={handleChange("siteEngineer")}
+                placeholder="Site engineer"
+                className="input-dark"
+              />
+            </FormField>
 
-<FormField label="Designer">
-  <Input
-    value={draft.designer ?? ""}
-    onChange={handleChange("designer")}
-    placeholder="Designer"
-    className="input-dark"
-  />
-</FormField>
-
+            <FormField label="Designer">
+              <Input
+                value={draft.designer ?? ""}
+                onChange={handleChange("designer")}
+                placeholder="Designer"
+                className="input-dark"
+              />
+            </FormField>
 
             <FormField label="Project Cost">
               <Input
@@ -198,7 +193,7 @@ export default function ProjectEditModal({
                 value={String(draft.projectCost)}
                 onChange={handleChange("projectCost")}
                 placeholder="₱"
-                className="input-dark text-right"
+                className="text-right input-dark"
                 required
               />
             </FormField>
@@ -236,7 +231,7 @@ function FormField({
 }) {
   return (
     <div className="flex flex-col">
-      <label className="mb-1 text-xs text-[#9ca3af]">{label}</label>
+      <label className="text-xs text-[#9ca3af] mb-1">{label}</label>
       {children}
     </div>
   );

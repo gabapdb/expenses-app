@@ -14,9 +14,10 @@ import ExpensesTable from "@/features/expenses/components/ExpensesTable";
 import ExpenseForm from "@/features/expenses/components/ExpenseForm";
 import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
 import MonthTabs from "@/features/expenses/components/MonthTabs";
+import YearPicker from "@/components/ui/YearPicker";
 
 /* -------------------------------------------------------------------------- */
-/* 🧩 Props                                                                  */
+/* 🧩 Props                                                                   */
 /* -------------------------------------------------------------------------- */
 export interface ExpensesGridProps {
   yyyyMM: string;
@@ -30,13 +31,12 @@ export interface ExpensesGridProps {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 🧩 Component                                                              */
+/* 🧱 Component                                                               */
 /* -------------------------------------------------------------------------- */
 export default function ExpensesGrid({
   yyyyMM,
   selectedYear,
   selectedMonth,
-  availableYears,
   onMonthChange,
   onYearChange,
   loadingYears,
@@ -49,15 +49,9 @@ export default function ExpensesGrid({
   const [error, setError] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
-  /* ---------------------------------------------------------------------- */
-  /* 🧩 Category source fallback                                            */
-  /* ---------------------------------------------------------------------- */
   const categorySource =
     Object.keys(categoryMap).length > 0 ? categoryMap : CATEGORY_MAP;
 
-  /* ---------------------------------------------------------------------- */
-  /* 🧮 Build month tabs                                                    */
-  /* ---------------------------------------------------------------------- */
   const months = useMemo(
     () =>
       Array.from({ length: 12 }, (_, m) => ({
@@ -67,9 +61,6 @@ export default function ExpensesGrid({
     [selectedYear]
   );
 
-  /* ---------------------------------------------------------------------- */
-  /* ⚙️ Handlers                                                           */
-  /* ---------------------------------------------------------------------- */
   async function handleTogglePaid(expense: Expense) {
     try {
       await updateExpensePaid(yyyyMM, expense.id, !expense.paid, {});
@@ -93,11 +84,10 @@ export default function ExpensesGrid({
   }
 
   /* ---------------------------------------------------------------------- */
-  /* 🖼️ Render                                                            */
+  /* 🖼️ Render                                                              */
   /* ---------------------------------------------------------------------- */
   return (
     <div className="space-y-8 text-[#e5e5e5]">
-      {/* --- Add Form --- */}
       <ExpenseForm
         yyyyMM={yyyyMM}
         projects={projects}
@@ -106,41 +96,33 @@ export default function ExpensesGrid({
       />
 
       {/* --- Month Tabs + Year Picker --- */}
-<div className="flex items-end justify-between border-b border-[#3a3a3a] bg-[#1f1f1f]">
-  <MonthTabs
-    months={months}
-    currentMonth={selectedMonth}
-    onChange={(val: string) => onMonthChange(val)}
-  />
+      <div className="flex items-end justify-between border-b border-[#3a3a3a] bg-[#1f1f1f]">
+        <MonthTabs
+          months={months}
+          currentMonth={selectedMonth}
+          onChange={(val: string) => onMonthChange(val)}
+        />
 
-  {/* Year Picker */}
-  <div className="flex items-center gap-2 text-sm px-4 pb-[6px] border-[#3a3a3a]">
-
-          <label htmlFor="year" className="text-[#9ca3af]">
-            Year:
-          </label>
+        <div className="px-4 pb-[6px]">
           {loadingYears ? (
             <div className="text-[#9ca3af] text-sm">Loading…</div>
           ) : yearError ? (
             <div className="text-[#f87171] text-sm">{yearError}</div>
           ) : (
-            <select
-              id="year"
-              className="border border-[#3a3a3a] bg-[#1f1f1f] text-[#d1d5db] rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-[#4f4f4f]"
+            <YearPicker
               value={selectedYear}
-              onChange={onYearChange}
-            >
-              {availableYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
+              onChange={(y) =>
+                onYearChange({
+                  target: { value: y.toString() },
+                } as React.ChangeEvent<HTMLSelectElement>)
+              }
+              mode="expenses"
+              className="w-28"
+            />
           )}
         </div>
       </div>
 
-      {/* --- Table --- */}
       <ExpensesTable
         expenses={expenses}
         projects={projects}
@@ -150,12 +132,8 @@ export default function ExpensesGrid({
         onDelete={handleDelete}
       />
 
-      {/* --- Error Banner --- */}
-      {error && (
-        <div className="text-sm text-[#f87171] font-medium">{error}</div>
-      )}
+      {error && <div className="text-sm text-[#f87171] font-medium">{error}</div>}
 
-      {/* --- Edit Modal --- */}
       {editingExpense && (
         <ExpenseEditModal
           yyyyMM={editingExpense.yyyyMM ?? yyyyMM}
