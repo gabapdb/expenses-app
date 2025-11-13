@@ -21,13 +21,22 @@ export async function getProjectCostEstimates(
     return {};
   }
 
-  const project = parsed.data.projects?.[projectId] as
-    | Client["projects"][string]
-    | undefined;
-  if (!project) return {};
+  const project = parsed.data.projects?.[projectId];
 
-  return project.designPhase?.costEstimates ?? {};
+  // 🔥 100% reliable narrowing — removes {} from union
+  if (
+    !project ||
+    typeof project !== "object" ||
+    !("designPhase" in project) ||
+    !project.designPhase ||
+    typeof project.designPhase !== "object"
+  ) {
+    return {};
+  }
+
+  return project.designPhase.costEstimates ?? {};
 }
+
 
 export async function updateProjectCostEstimates(
   clientId: string,
