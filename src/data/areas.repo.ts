@@ -148,7 +148,10 @@ export async function createClientArea(
   clientId: string,
   data: unknown
 ): Promise<void> {
-  const parsed = areaSchema.parse({ ...data, source: "client" });
+  const parsed = areaSchema.parse({
+    ...(data as Record<string, unknown>),
+    source: "client",
+  });
   const ref = clientAreaDoc(clientId, parsed.id);
 
   await setDoc(ref, parsed, { merge: true });
@@ -174,7 +177,11 @@ export async function createClientScope(
   areaId: string,
   data: unknown
 ): Promise<void> {
-  const parsed = scopeOfWorkSchema.parse({ ...data, areaId, source: "client" });
+  const parsed = scopeOfWorkSchema.parse({
+    ...(data as Record<string, unknown>),
+    areaId,
+    source: "client",
+  });
   const ref = clientScopeDoc(clientId, areaId, parsed.id);
 
   await setDoc(ref, parsed, { merge: true });
