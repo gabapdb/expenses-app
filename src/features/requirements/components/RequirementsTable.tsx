@@ -6,25 +6,28 @@ import { deleteRequirement } from "@/data/requirements.repo";
 import StatusBadge from "./StatusBadge";
 
 interface RequirementsTableProps {
-  projectId: string;
-  area: string;
+  clientId: string;
   requirements: Requirement[];
+  areaLookup: Map<string, string>;
+  scopeLookup: Map<string, string>;
   onUpdated?: () => void;
   onRowClick?: (req: Requirement) => void;
 }
 
 export default function RequirementsTable({
-  projectId,
+  clientId,
   requirements,
+  areaLookup,
+  scopeLookup,
   onUpdated,
   onRowClick,
 }: RequirementsTableProps) {
   const handleDelete = useCallback(
     async (req: Requirement) => {
-      await deleteRequirement(projectId, req.area, req.id);
+      await deleteRequirement(clientId, req.id);
       onUpdated?.();
     },
-    [projectId, onUpdated]
+    [clientId, onUpdated]
   );
 
   return (
@@ -32,6 +35,8 @@ export default function RequirementsTable({
       <table className="min-w-full text-sm text-[#d1d1d1] border-collapse">
         <thead className="bg-[#222] text-[#bbb]">
           <tr className="text-left">
+            <th className="px-3 py-2 w-[12%]">Area</th>
+            <th className="px-3 py-2 w-[12%]">Scope</th>
             <th className="px-3 py-2 w-[10%]">Store</th>
             <th className="px-3 py-2 w-[14%]">Item</th>
             <th className="px-3 py-2 w-[12%]">Type</th>
@@ -45,58 +50,65 @@ export default function RequirementsTable({
         </thead>
 
         <tbody>
-          {requirements.map((req) => (
-            <tr
-              key={req.id}
-              className="border-t border-[#2e2e2e] hover:bg-[#2a2a2a] cursor-pointer"
-              onClick={() => onRowClick?.(req)}
-            >
-              <td className="px-3 py-2">{req.store}</td>
-              <td className="px-3 py-2">{req.item}</td>
-              <td className="px-3 py-2">{req.type}</td>
-              <td className="px-3 py-2">{req.dimensions}</td>
+          {requirements.map((req) => {
+            const areaName = areaLookup.get(req.areaId) ?? req.areaId;
+            const scopeName = scopeLookup.get(req.scopeId) ?? req.scopeId;
 
-              <td className="px-3 py-2 text-center">
-                <input
-                  type="checkbox"
-                  checked={!!req.approved}
-                  readOnly
-                  className="accent-green-500 cursor-default"
-                />
-              </td>
-              <td className="px-3 py-2 text-center">
-                <input
-                  type="checkbox"
-                  checked={!!req.notApproved}
-                  readOnly
-                  className="accent-red-500 cursor-default"
-                />
-              </td>
+            return (
+              <tr
+                key={req.id}
+                className="border-t border-[#2e2e2e] hover:bg-[#2a2a2a] cursor-pointer"
+                onClick={() => onRowClick?.(req)}
+              >
+                <td className="px-3 py-2 capitalize">{areaName}</td>
+                <td className="px-3 py-2 capitalize">{scopeName}</td>
+                <td className="px-3 py-2">{req.store}</td>
+                <td className="px-3 py-2">{req.item}</td>
+                <td className="px-3 py-2">{req.type}</td>
+                <td className="px-3 py-2">{req.dimensions}</td>
 
-              <td className="px-3 py-2">
-                <StatusBadge status={req.status} />
-              </td>
+                <td className="px-3 py-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={!!req.approved}
+                    readOnly
+                    className="accent-green-500 cursor-default"
+                  />
+                </td>
+                <td className="px-3 py-2 text-center">
+                  <input
+                    type="checkbox"
+                    checked={!!req.notApproved}
+                    readOnly
+                    className="accent-red-500 cursor-default"
+                  />
+                </td>
 
-              <td className="px-3 py-2">{req.notes}</td>
+                <td className="px-3 py-2">
+                  <StatusBadge status={req.status} />
+                </td>
 
-              <td className="px-3 py-2 text-right">
-                <button
-                  type="button"
-                  className="rounded-md bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-500 transition"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void handleDelete(req);
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
+                <td className="px-3 py-2">{req.notes}</td>
+
+                <td className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    className="rounded-md bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-500 transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void handleDelete(req);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
 
           {requirements.length === 0 && (
             <tr>
-              <td colSpan={9} className="px-3 py-6 text-center text-[#999]">
+              <td colSpan={11} className="px-3 py-6 text-center text-[#999]">
                 No requirements yet.
               </td>
             </tr>

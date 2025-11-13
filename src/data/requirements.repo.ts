@@ -1,60 +1,81 @@
-import {
-  collection,
-  doc,
-  getFirestore,
-  updateDoc,
-  deleteDoc,
-  addDoc,
-  getDocs,
-  type DocumentData,
-} from "firebase/firestore";
-import type { Requirement } from "@/domain/validation/requirementSchema";
+import { addDoc, collection, deleteDoc, doc, getDocs, updateDoc } from "firebase/firestore";
 
-/* -------------------------------------------------------------------------- */
-/* 🔧 Firestore References                                                    */
-/* -------------------------------------------------------------------------- */
-function requirementsRef(projectId: string) {
-  return collection(getFirestore(), "projects", projectId, "requirements");
+import { db } from "@/core/firebase";
+import { requirementSchema, type Requirement } from "@/domain/validation/requirementSchema";
+
+function requirementsCollection(clientId: string) {
+  return collection(db, "clients", clientId, "construction", "requirements");
 }
 
-/* -------------------------------------------------------------------------- */
-/* ➕ Add Requirement                                                         */
-/* -------------------------------------------------------------------------- */
-export async function addRequirement(projectId: string, data: Requirement): Promise<void> {
-  const ref = requirementsRef(projectId);
-  // Create the doc and ensure Firestore ID and local `id` field match
-  const docRef = await addDoc(ref, data as DocumentData);
+export async function getRequirements(clientId: string): Promise<Requirement[]> {
+  const ref = requirementsCollection(clientId);
+  const snap = await getDocs(ref);
+
+  return snap.docs.map((docSnap) =>
+    requirementSchema.parse({
+      id: docSnap.id,
+      ...docSnap.data(),
+      clientId,
+    })
+  );
+}
+
+export async function createRequirement(
+  clientId: string,
+  data: Requirement
+): Promise<void> {
+  if (!data.areaId) throw new Error("areaId is required");
+  if (!data.scopeId) throw new Error("scopeId is required");
+  if (!data.type) throw new Error("type is required");
+
+  const ref = requirementsCollection(clientId);
+  const payload = requirementSchema.parse({
+    ...data,
+    clientId,
+  });
+
+  const docRef = await addDoc(ref, payload);
   await updateDoc(docRef, { id: docRef.id });
 }
 
-/* -------------------------------------------------------------------------- */
-/* ✏️ Update Requirement                                                      */
-/* -------------------------------------------------------------------------- */
-export async function updateRequirement(projectId: string, req: Requirement): Promise<void> {
-  if (!req.id) throw new Error("Missing requirement ID for update.");
-  const ref = doc(getFirestore(), "projects", projectId, "requirements", req.id);
-  await updateDoc(ref, { ...req });
-}
+export async function updateRequirement(
+  clientId: string,
+  requirement: Requirement
+): Promise<void> {
+  if (!requirement.id) throw new Error("Missing requirement ID for update.");
+  if (!requirement.areaId) throw new Error("areaId is required");
+  if (!requirement.scopeId) throw new Error("scopeId is required");
+  if (!requirement.type) throw new Error("type is required");
 
-/* -------------------------------------------------------------------------- */
-/* ❌ Delete Requirement                                                      */
-/* -------------------------------------------------------------------------- */
-export async function deleteRequirement(projectId: string, _area: string, id: string): Promise<void> {
-  const ref = doc(getFirestore(), "projects", projectId, "requirements", id);
-  await deleteDoc(ref);
-}
-
-/* -------------------------------------------------------------------------- */
-/* 📦 Get All Requirements                                                    */
-/* -------------------------------------------------------------------------- */
-export async function getRequirements(projectId: string): Promise<Requirement[]> {
-  const ref = requirementsRef(projectId);
-  const snap = await getDocs(ref);
-  return snap.docs.map(
-    (d) =>
-      ({
-        id: d.id,
-        ...d.data(),
-      } as Requirement)
+  const ref = doc(
+    db,
+    "clients",
+    clientId,
+    "construction",
+    "requirements",
+    requirement.id
   );
+
+  const payload = requirementSchema.parse({
+    ...requirement,
+    clientId,
+    updatedAt: requirement.updatedAt ?? Date.now(),
+  });
+
+  await updateDoc(ref, payload);
+}
+
+export async function deleteRequirement(
+  clientId: string,
+  requirementId: string
+): Promise<void> {
+  const ref = doc(
+    db,
+    "clients",
+    clientId,
+    "construction",
+    "requirements",
+    requirementId
+  );
+  await deleteDoc(ref);
 }

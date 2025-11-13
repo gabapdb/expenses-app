@@ -10,21 +10,21 @@ export interface UseRequirementsResult {
   refresh: () => Promise<void>;
 }
 
-export function useRequirements(projectId: string): UseRequirementsResult {
+export function useRequirements(clientId: string): UseRequirementsResult {
   const [data, setData] = useState<Requirement[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   const refresh = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
-      const reqs = await getRequirements(projectId);
+      const reqs = await getRequirements(clientId);
       setData(reqs);
     } catch (err) {
       console.error("[useRequirements] Failed to load requirements:", err);
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [clientId]);
 
   useEffect(() => {
     void refresh();

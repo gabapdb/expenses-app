@@ -7,7 +7,6 @@ import ProjectInfoSection from "./ProjectInfoSection";
 import ProjectOverviewSection from "./ProjectOverviewSection";
 import MonthlyExpensesSection from "./MonthlyExpensesSection";
 import BreakdownOfCostsSection from "./BreakdownOfCostsSection";
-import RequirementsSection from "@/features/requirements/components/RequirementsSection";
 import { normalizeTeam } from "@/utils/normalizeTeam";
 
 /* -------------------------------------------------------------------------- */
@@ -16,9 +15,7 @@ import { normalizeTeam } from "@/utils/normalizeTeam";
 export default function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const { data: project, loading, error } = useProject(projectId);
-  const [activeTab, setActiveTab] = useState<
-    "monthly" | "breakdown" | "requirements"
-  >("monthly");
+  const [activeTab, setActiveTab] = useState<"monthly" | "breakdown">("monthly");
 
   if (loading)
     return <div className="p-6 text-[#9ca3af] text-sm">Loading project…</div>;
@@ -56,14 +53,11 @@ export default function ProjectDetailPage() {
         {[
           { key: "monthly", label: "Monthly Expenses" },
           { key: "breakdown", label: "Breakdown of Costs" },
-          { key: "requirements", label: "Requirements" },
         ].map(({ key, label }) => (
           <button
             key={key}
             type="button"
-            onClick={() =>
-              setActiveTab(key as "monthly" | "breakdown" | "requirements")
-            }
+            onClick={() => setActiveTab(key as "monthly" | "breakdown")}
             className={`px-4 py-2 text-sm font-medium rounded-t-md transition-all ${
               activeTab === key
                 ? "bg-[#242424] text-[#e5e5e5] border border-[#3a3a3a] border-b-0 shadow-inner"
@@ -85,9 +79,6 @@ export default function ProjectDetailPage() {
           <BreakdownOfCostsSection projectId={normalizedProject.id} />
         )}
 
-        {activeTab === "requirements" && (
-          <RequirementsSection projectId={normalizedProject.id} />
-        )}
       </div>
     </main>
   );
