@@ -34,6 +34,7 @@ const ProjectCEZ = z
 
 export const ProjectZod = z.object({
   id: z.string(),
+  clientId: z.string().optional(),
   name: z.string(),
   team: z.string().optional(),
   projectCost: z.number().optional().default(0),
