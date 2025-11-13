@@ -21,22 +21,21 @@ export async function getProjectCostEstimates(
     return {};
   }
 
-  const project = parsed.data.projects?.[projectId];
+  const projects = parsed.data.projects;
+  if (!projects || typeof projects !== "object") return {};
 
-  // 🔐 Final TS-safe guard — prevents null or non-object issues
-  if (
-    !project ||
-    typeof project !== "object" ||
-    project.designPhase == null || // <-- THIS FIXES THE ERROR
-    typeof project.designPhase !== "object" ||
-    project.designPhase.costEstimates == null ||
-    typeof project.designPhase.costEstimates !== "object"
-  ) {
-    return {};
-  }
+  const project = projects[projectId];
+  if (!project || typeof project !== "object") return {};
 
-  return project.designPhase.costEstimates;
+  const designPhase = project.designPhase;
+  if (!designPhase || typeof designPhase !== "object") return {};
+
+  const ce = designPhase.costEstimates;
+  if (!ce || typeof ce !== "object") return {};
+
+  return ce;
 }
+
 
 
 
