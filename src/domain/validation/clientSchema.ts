@@ -38,7 +38,7 @@ export const clientSchema = z.object({
   // ✔ CE must now live under designPhase
   designPhase: z
     .object({
-      costEstimates: z.record(z.number()).optional(),
+      costEstimates: z.record(z.string(), z.number()).optional(),
     })
     .default({}),
 
