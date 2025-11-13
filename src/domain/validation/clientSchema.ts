@@ -64,7 +64,9 @@ export const clientSchema = z.object({
     createdAt: z.number().optional(), // Firestore ms timestamp
   }),
 
-  projects: z.record(ClientProjectSchema).default(() => ({})),
+  projects: z
+    .record(ClientProjectSchema)
+    .default(() => ({} as Record<string, z.infer<typeof ClientProjectSchema>>)),
 });
 
 export type Client = z.infer<typeof clientSchema>;
