@@ -3,6 +3,7 @@ import { TEAM_OPTIONS } from "@/config/teams";
 
 export const ProjectSchema = z.object({
   id: z.string(),
+  clientId: z.string().optional(),
   name: z.string().min(1, "Project name is required"),
 
   // ✅ Enforce team values strictly from TEAM_OPTIONS
