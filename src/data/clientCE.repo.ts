@@ -23,13 +23,13 @@ export async function getProjectCostEstimates(
 
   const project = parsed.data.projects?.[projectId];
 
-  // 🔥 100% reliable narrowing — removes {} from union
+  // 🔒 Strong narrowing: ensures TS knows designPhase and costEstimates exist
   if (
     !project ||
     typeof project !== "object" ||
     !("designPhase" in project) ||
-    !project.designPhase ||
-    typeof project.designPhase !== "object"
+    typeof project.designPhase !== "object" ||
+    !("costEstimates" in project.designPhase)
   ) {
     return {};
   }
