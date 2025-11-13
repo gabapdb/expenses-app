@@ -65,7 +65,7 @@ export const clientSchema = z.object({
   }),
 
   projects: z
-    .record(ClientProjectSchema)
+    .record(z.string(), ClientProjectSchema)
     .default(() => ({} as Record<string, z.infer<typeof ClientProjectSchema>>)),
 });
 
