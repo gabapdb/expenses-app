@@ -21,14 +21,10 @@ export async function getProjectCostEstimates(
     return {};
   }
 
-  const project = parsed.data.projects?.[projectId];
-
-if (!project || typeof project !== "object") return {};
-if (!("designPhase" in project)) return {};
-
-return project.designPhase?.costEstimates ?? {};
-
+  const project = parsed.data.projects[projectId];
+  return project?.designPhase?.costEstimates ?? {};
 }
+
 
 
 export async function updateProjectCostEstimates(
