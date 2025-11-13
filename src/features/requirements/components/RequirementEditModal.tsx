@@ -110,7 +110,13 @@ export default function RequirementEditModal({
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type, checked } = event.target;
+    const target = event.target as
+      | HTMLInputElement
+      | HTMLTextAreaElement
+      | HTMLSelectElement;
+    const { name, value, type } = target;
+    const checked =
+      type === "checkbox" ? (target as HTMLInputElement).checked : undefined;
 
     if (name === "areaId") {
       setFormData((prev) => ({ ...prev, areaId: value, scopeId: "" }));
