@@ -11,8 +11,10 @@ import {
 /* -------------------------------------------------------------------------- */
 export const requirementSchema = z.object({
   id: z.string(),
+  clientId: z.string(),
   projectId: z.string(),
-  area: z.string(),
+  areaId: z.string(),
+  scopeId: z.string(),
   store: z.string().optional().default(""),
   item: z.string().optional().default(""),
   type: z.enum(REQUIREMENT_TYPE_LIST),
