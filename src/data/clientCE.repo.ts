@@ -23,19 +23,21 @@ export async function getProjectCostEstimates(
 
   const project = parsed.data.projects?.[projectId];
 
-  // 🔒 Strong narrowing: ensures TS knows designPhase and costEstimates exist
+  // 🔐 Final TS-safe guard — prevents null or non-object issues
   if (
     !project ||
     typeof project !== "object" ||
-    !("designPhase" in project) ||
+    project.designPhase == null || // <-- THIS FIXES THE ERROR
     typeof project.designPhase !== "object" ||
-    !("costEstimates" in project.designPhase)
+    project.designPhase.costEstimates == null ||
+    typeof project.designPhase.costEstimates !== "object"
   ) {
     return {};
   }
 
-  return project.designPhase.costEstimates ?? {};
+  return project.designPhase.costEstimates;
 }
+
 
 
 export async function updateProjectCostEstimates(
