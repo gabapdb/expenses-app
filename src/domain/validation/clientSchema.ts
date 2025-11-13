@@ -2,6 +2,34 @@ import { z } from "zod";
 import { TEAM_OPTIONS } from "@/config/teams";
 import { costEstimateSchema } from "@/domain/validation/costEstimateSchema";
 
+const ClientProjectSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1),
+
+  projectSize: z.string().optional().default(""),
+  projectCost: z.number().nullable().optional(),
+  developer: z.string().optional().default(""),
+  city: z.string().optional().default(""),
+  designer: z.string().optional().default(""),
+  engineer: z.string().optional().default(""),
+  startDate: z.string().optional().default(""),
+  endDate: z.string().optional().default(""),
+
+  team: z
+    .enum(TEAM_OPTIONS)
+    .refine((v) => TEAM_OPTIONS.includes(v))
+    .optional()
+    .default(TEAM_OPTIONS[0]),
+
+  designPhase: z
+    .object({
+      costEstimates: costEstimateSchema.optional().default({}),
+    })
+    .default(() => ({ costEstimates: {} })),
+
+  constructionPhase: z.object({}).default(() => ({})),
+});
+
 export const clientSchema = z.object({
   id: z.string(), // Firestore document ID
   name: z.string(), // Client name (Design phase)
@@ -36,38 +64,8 @@ export const clientSchema = z.object({
     createdAt: z.number().optional(), // Firestore ms timestamp
   }),
 
-  projects: z
-    .record(
-      z.object({
-        id: z.string(),
-        name: z.string().min(1),
-
-        projectSize: z.string().optional().default(""),
-        projectCost: z.number().nullable().optional(),
-        developer: z.string().optional().default(""),
-        city: z.string().optional().default(""),
-        designer: z.string().optional().default(""),
-        engineer: z.string().optional().default(""),
-        startDate: z.string().optional().default(""),
-        endDate: z.string().optional().default(""),
-
-        team: z
-          .enum(TEAM_OPTIONS)
-          .refine((v) => TEAM_OPTIONS.includes(v))
-          .optional()
-          .default(TEAM_OPTIONS[0]),
-
-        designPhase: z
-          .object({
-            costEstimates: costEstimateSchema.optional().default({}),
-          })
-          .default(() => ({ costEstimates: {} })),
-
-        constructionPhase: z.object({}).default(() => ({})),
-      })
-    )
-    .default(() => ({})),
+  projects: z.record(ClientProjectSchema).default(() => ({})),
 });
 
 export type Client = z.infer<typeof clientSchema>;
-export type ClientProject = z.infer<typeof clientSchema>["projects"][string];
+export type ClientProject = z.infer<typeof ClientProjectSchema>;
