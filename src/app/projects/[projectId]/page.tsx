@@ -27,6 +27,7 @@ export default function ProjectDetailPage() {
   // ✅ Normalize here once for all subcomponents
   const normalizedProject = {
     ...project,
+    clientId: project.clientId ?? "",
     team: normalizeTeam(project.team),
     developer: project.developer ?? "",
     city: project.city ?? "",
@@ -76,7 +77,10 @@ export default function ProjectDetailPage() {
         )}
 
         {activeTab === "breakdown" && (
-          <BreakdownOfCostsSection projectId={normalizedProject.id} />
+          <BreakdownOfCostsSection
+            clientId={normalizedProject.clientId}
+            projectId={normalizedProject.id}
+          />
         )}
 
       </div>

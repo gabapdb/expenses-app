@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useProjectExpenseBreakdown } from "@/hooks/expenses/useProjectExpenseBreakdown";
-import { useProject } from "@/hooks/projects/useProjects";
-import { updateProjectCE } from "@/data/projects.repo.ce";
+import { useProjectCostEstimates } from "@/hooks/clients/useProjectCostEstimates";
 import { peso, pct } from "@/utils/format";
 import { RotateCw } from "lucide-react";
 
@@ -11,6 +10,7 @@ import { RotateCw } from "lucide-react";
 /* Types & constants                                                          */
 /* -------------------------------------------------------------------------- */
 interface BreakdownOfCostsSectionProps {
+  clientId: string;
   projectId: string;
 }
 
@@ -47,17 +47,21 @@ const toLower = (s: unknown) => (typeof s === "string" ? s.toLowerCase() : "");
 /* Component                                                                  */
 /* -------------------------------------------------------------------------- */
 export default function BreakdownOfCostsSection({
+  clientId,
   projectId,
 }: BreakdownOfCostsSectionProps) {
   const { data, loading, refetch } = useProjectExpenseBreakdown(projectId);
-  const { data: project } = useProject(projectId);
+  const { ce: clientCostEstimates, save } = useProjectCostEstimates(
+    clientId,
+    projectId
+  );
 
   const [activeTab, setActiveTab] = useState<TabKey>("cabinets");
   const [editingKey, setEditingKey] = useState<TradeKey | null>(null);
   const [draft, setDraft] = useState<number>(0);
   const [lastUpdated, setLastUpdated] = useState("");
 
-  const ce = project?.costEstimates ?? EMPTY_COST_ESTIMATES;
+  const costEstimates = clientCostEstimates ?? EMPTY_COST_ESTIMATES;
 
   const refresh = async () => {
     await refetch();
@@ -73,7 +77,7 @@ export default function BreakdownOfCostsSection({
 
   const saveCE = async (key: TradeKey, value: number) => {
     try {
-      await updateProjectCE(projectId, { [key]: value });
+      await save({ ...costEstimates, [key]: value });
     } finally {
       setEditingKey(null);
     }
@@ -100,7 +104,7 @@ export default function BreakdownOfCostsSection({
   );
   const cabLabor = sumWhere((cat, sub) => cat === "salary" && sub === "carpentry");
   const cabTotal = cabBoards + cabLaminate + cabRugby + cabAccessories + cabLabor;
-  const cabCE = ce.carpentry ?? 0;
+  const cabCE = costEstimates.carpentry ?? 0;
   const cabProfit = Math.max(0, cabCE - cabTotal);
   const cabPct = cabCE > 0 ? (cabProfit / cabCE) * 100 : 0;
 
@@ -156,7 +160,7 @@ export default function BreakdownOfCostsSection({
 
     MATERIAL_TRADES.forEach((t) => {
       const rowTotal = (materialsByTrade.mats[t] ?? 0) + (materialsByTrade.sal[t] ?? 0);
-      const ceVal = ce[t] ?? 0;
+      const ceVal = costEstimates[t] ?? 0;
       const profit = Math.max(0, ceVal - rowTotal);
       matsSum += materialsByTrade.mats[t] ?? 0;
       salSum += materialsByTrade.sal[t] ?? 0;
@@ -166,7 +170,7 @@ export default function BreakdownOfCostsSection({
 
     const percent = ceSum > 0 ? (profitSum / ceSum) * 100 : 0;
     return { matsSum, salSum, ceSum, profitSum, percent };
-  }, [materialsByTrade, ce]);
+  }, [materialsByTrade, costEstimates]);
 
   /* ------------------------------------------------------------------------ */
   /* TRANSPORT                                                                */
@@ -174,7 +178,7 @@ export default function BreakdownOfCostsSection({
   const transHauling = sumWhere((cat, sub) => cat === "transport" && sub === "hauling");
   const transDelivery = sumWhere((cat, sub) => cat === "transport" && sub === "delivery");
   const transTotal = transHauling + transDelivery;
-  const transCE = ce.transport ?? 0;
+  const transCE = costEstimates.transport ?? 0;
   const transProfit = Math.max(0, transCE - transTotal);
   const transPct = transCE > 0 ? (transProfit / transCE) * 100 : 0;
 
@@ -292,7 +296,7 @@ export default function BreakdownOfCostsSection({
                 const mats = materialsByTrade.mats[trade] ?? 0;
                 const sal = materialsByTrade.sal[trade] ?? 0;
                 const rowTotal = mats + sal;
-                const ceVal = ce[trade] ?? 0;
+                const ceVal = costEstimates[trade] ?? 0;
                 const profit = Math.max(0, ceVal - rowTotal);
                 const percent = ceVal > 0 ? (profit / ceVal) * 100 : 0;
                 const label =
