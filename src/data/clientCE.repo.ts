@@ -22,10 +22,13 @@ export async function getProjectCostEstimates(
   }
 
   const project = parsed.data.projects?.[projectId];
+
+  // Type guard to prevent '{}' type pollution
   if (!project) return {};
 
   return project.designPhase?.costEstimates ?? {};
 }
+
 
 export async function updateProjectCostEstimates(
   clientId: string,
