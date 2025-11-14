@@ -293,7 +293,8 @@ export function useAvailableExpenseYearsAndMonths(
     return () => {
       active = false;
     };
-  }, [key, normalizedOptions]);
+    // FIX: normalizedOptions is an object → unstable dependency
+  }, [key]);
 
   const latestYear = info[0]?.year;
   const latestMonth = info[0]?.months?.[info[0].months.length - 1];

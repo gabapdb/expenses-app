@@ -6,6 +6,56 @@ import type { Expense } from "@/domain/models";
 import { allMonths, getMonthName, getPaymentTimestamp } from "@/utils/expenses";
 import { useProjectExpensesCollection } from "./useProjectExpensesCollection";
 
+export interface ProjectExpensesByYearScope {
+  clientId?: string;
+  projectId?: string;
+  year?: string;
+  month?: string;
+  yyyyMM?: string;
+}
+
+interface ResolvedYearScope {
+  clientId: string;
+  projectId: string;
+  year: string;
+  month: string;
+  yyyyMM: string;
+}
+
+function normalize(value: string | undefined): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function resolveYearScope(
+  scopeOrProjectId: string | ProjectExpensesByYearScope
+): ResolvedYearScope {
+  if (typeof scopeOrProjectId === "string") {
+    const projectId = normalize(scopeOrProjectId);
+    return { clientId: "", projectId, year: "", month: "", yyyyMM: "" };
+  }
+
+  const clientId = normalize(scopeOrProjectId.clientId);
+  const projectId = normalize(scopeOrProjectId.projectId);
+  const providedYear = normalize(scopeOrProjectId.year);
+  const providedMonth = normalize(scopeOrProjectId.month);
+  const providedYYYYMM = normalize(scopeOrProjectId.yyyyMM);
+  const resolvedYear =
+    providedYear || (providedYYYYMM ? providedYYYYMM.slice(0, 4) : "");
+  const resolvedMonth =
+    providedMonth || (providedYYYYMM ? providedYYYYMM.slice(4, 6) : "");
+  const yyyyMM =
+    providedYYYYMM ||
+    (resolvedYear && resolvedMonth ? `${resolvedYear}${resolvedMonth}` : "");
+
+  return {
+    clientId,
+    projectId,
+    year: resolvedYear,
+    month: resolvedMonth,
+    yyyyMM,
+  };
+}
+
 interface AggregatedExpenseData {
   byMonth: Record<string, Record<string, number>>;
   byCategory: Record<string, number>;
@@ -22,14 +72,21 @@ interface AggregatedExpenseData {
  * Uses datePaid as the time source.
  */
 export function useProjectExpensesByYear(
-  projectId: string,
+  scopeOrProjectId: string | ProjectExpensesByYearScope,
   requestedYear: number
 ): AggregatedExpenseData {
+  const resolvedScope = useMemo(
+    () => resolveYearScope(scopeOrProjectId),
+    [scopeOrProjectId]
+  );
+
+  const { projectId } = resolvedScope;
+
   const {
     data: allExpenses,
     loading,
     error,
-  } = useProjectExpensesCollection(projectId);
+  } = useProjectExpensesCollection(projectId ? resolvedScope : null);
 
   const aggregates = useMemo(() => {
     const expensesByYear = new Map<number, Expense[]>();

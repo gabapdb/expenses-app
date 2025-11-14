@@ -1,11 +1,15 @@
 import "@/styles/globals.css";
 import "@/styles/layout.css";
-import { Inter } from "next/font/google";
+// Local font optional — ignore missing file
+import type localFont from "next/font/local";
 import AppShell from "@/components/layout/AppShell";
 import { AuthProvider } from "@/context/AuthContext";
 import DevLoginButton from "@/components/ui/DevLoginButton";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = {
+  className: "",
+  variable: "--font-inter",
+} as ReturnType<typeof localFont>;
 
 export const metadata = {
   title: "APDB Project & Expenses",
