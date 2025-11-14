@@ -98,10 +98,15 @@ export function useProjectExpenses(
     let active = true;
 
     const attachListener = (
-      useProjectFilter: boolean,
-      ...pathSegments: string[]
+      pathSegments: readonly string[],
+      useProjectFilter: boolean
     ) => {
-      const ref = collection(db, ...pathSegments);
+      if (pathSegments.length === 0) {
+        throw new Error("[useProjectExpenses] Missing collection path segments");
+      }
+
+      const [first, ...rest] = pathSegments;
+      const ref = collection(db, first, ...rest);
       const baseQuery = useProjectFilter
         ? query(
             ref,
@@ -162,7 +167,7 @@ export function useProjectExpenses(
     const subscribeLegacy = () => {
       if (!active) return;
       unsubscribe?.();
-      unsubscribe = attachListener(true, "expenses", yyyyMM, "items");
+      unsubscribe = attachListener(["expenses", yyyyMM, "items"], true);
     };
 
     (async () => {
@@ -190,7 +195,7 @@ export function useProjectExpenses(
           }
 
           if (!scopedSnapshot.empty) {
-            unsubscribe = attachListener(false, ...segments);
+            unsubscribe = attachListener(segments, false);
             return;
           }
         }

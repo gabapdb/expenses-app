@@ -103,8 +103,13 @@ export function useRealtimeExpenses(
     let unsubscribe: (() => void) | undefined;
     let active = true;
 
-    const attachListener = (...pathSegments: string[]) => {
-      const ref = collection(db, ...pathSegments);
+    const attachListener = (pathSegments: readonly string[]) => {
+      if (pathSegments.length === 0) {
+        throw new Error("[useRealtimeExpenses] Missing collection path segments");
+      }
+
+      const [first, ...rest] = pathSegments;
+      const ref = collection(db, first, ...rest);
       const q = query(
         ref,
         orderBy("datePaid", "asc"),
@@ -157,7 +162,7 @@ export function useRealtimeExpenses(
     const subscribeToLegacy = () => {
       if (!active) return;
       unsubscribe?.();
-      unsubscribe = attachListener("expenses", yyyyMM, "items");
+      unsubscribe = attachListener(["expenses", yyyyMM, "items"]);
     };
 
     (async () => {
@@ -184,7 +189,7 @@ export function useRealtimeExpenses(
           }
 
           if (!scopedSnapshot.empty) {
-            unsubscribe = attachListener(...segments);
+            unsubscribe = attachListener(segments);
             return;
           }
         }
