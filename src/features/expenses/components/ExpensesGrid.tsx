@@ -13,6 +13,7 @@ import { useExpenseDate } from "@/context/ExpenseDateContext";
 /* -------------------------------------------------------------------------- */
 export interface ExpensesGridProps {
   yyyyMM: string;
+  projectId?: string;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -20,6 +21,7 @@ export interface ExpensesGridProps {
 /* -------------------------------------------------------------------------- */
 export default function ExpensesGrid({
   yyyyMM,
+  projectId,
 }: ExpensesGridProps) {
   const { selectedYear, loadingYears, yearError } = useExpenseDate();
 
@@ -39,6 +41,7 @@ export default function ExpensesGrid({
   } = useExpensesGridLogicV2({
     yyyyMM,
     selectedYear,
+    projectId,
   });
 
   /* ---------------------------------------------------------------------- */

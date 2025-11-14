@@ -20,6 +20,7 @@ import type { Project } from "@/hooks/projects/useProjects";
 export interface UseExpensesGridLogicV2Options {
   yyyyMM: string;
   selectedYear: number;
+  projectId?: string | null;
 }
 
 export interface UseExpensesGridLogicV2Result {
@@ -45,14 +46,36 @@ export interface UseExpensesGridLogicV2Result {
 export function useExpensesGridLogicV2({
   yyyyMM,
   selectedYear,
+  projectId,
 }: UseExpensesGridLogicV2Options): UseExpensesGridLogicV2Result {
   const { data: projects, loading: projectsLoading } = useProjects();
   const { categoryMap } = useCategories();
+  const projectClientId = useMemo(() => {
+    if (!projectId) return null;
+    const match = projects.find((project) => project.id === projectId);
+    const cid = match?.clientId?.trim();
+    return cid && cid.length > 0 ? cid : null;
+  }, [projectId, projects]);
+  const realtimeScope = useMemo(() => {
+    if (!projectId) return yyyyMM;
+    return {
+      projectId,
+      clientId: projectClientId ?? undefined,
+      yyyyMM,
+    };
+  }, [projectId, projectClientId, yyyyMM]);
   const {
-    data: expenses,
+    data: rawExpenses,
     loading: expensesLoading,
     error: expensesError,
-  } = useRealtimeExpenses(yyyyMM);
+  } = useRealtimeExpenses(realtimeScope);
+  const expenses = useMemo(
+    () =>
+      projectId
+        ? rawExpenses.filter((expense) => expense.projectId === projectId)
+        : rawExpenses,
+    [projectId, rawExpenses]
+  );
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
