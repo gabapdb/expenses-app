@@ -181,7 +181,14 @@ export function useRealtimeExpenses(
             month,
             "items",
           ];
-          const scopedRef = collection(db, ...segments);
+          if (segments.length === 0) {
+            throw new Error(
+              "[useRealtimeExpenses] Missing scoped collection path segments"
+            );
+          }
+
+          const [firstSegment, ...remainingSegments] = segments;
+          const scopedRef = collection(db, firstSegment, ...remainingSegments);
           const scopedSnapshot = await getDocs(scopedRef);
 
           if (!active) {

@@ -186,8 +186,14 @@ export function useProjectExpenses(
             month,
             "items",
           ];
+          if (segments.length === 0) {
+            throw new Error(
+              "[useProjectExpenses] Missing scoped collection path segments"
+            );
+          }
 
-          const scopedRef = collection(db, ...segments);
+          const [firstSegment, ...remainingSegments] = segments;
+          const scopedRef = collection(db, firstSegment, ...remainingSegments);
           const scopedSnapshot = await getDocs(scopedRef);
 
           if (!active) {
