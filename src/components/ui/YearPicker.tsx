@@ -1,15 +1,17 @@
 "use client";
 
 import { useMemo } from "react";
+import type { ChangeEvent } from "react";
 import { useExpenseYears } from "@/hooks/expenses/useExpenseYears";
 import { useProjectYears } from "@/hooks/projects/useProjectYears";
+import { useOptionalExpenseDate } from "@/context/ExpenseDateContext";
 
 /* -------------------------------------------------------------------------- */
 /* 🧠 Types                                                                   */
 /* -------------------------------------------------------------------------- */
 interface YearPickerProps {
-  value: number;
-  onChange: (year: number) => void;
+  value?: number;
+  onChange?: (year: number) => void;
   label?: string;
   className?: string;
   mode?: "expenses" | "projects" | "merged";
@@ -38,7 +40,8 @@ export default function YearPicker({
   loadingOverride,
   errorOverride,
 }: YearPickerProps) {
-  const shouldFetch = typeof providedYears === "undefined";
+  const expenseDate = useOptionalExpenseDate();
+  const shouldFetch = typeof providedYears === "undefined" && !expenseDate;
 
   const expense = useExpenseYears({
     enabled: shouldFetch && mode !== "projects",
@@ -48,10 +51,16 @@ export default function YearPicker({
   });
 
   const years = useMemo(() => {
+    if (expenseDate) {
+      return expenseDate.availableYears;
+    }
+
     if (!shouldFetch) {
       const manualYears = providedYears ?? [];
       const merged = new Set<number>(manualYears);
-      merged.add(value);
+      if (typeof value === "number") {
+        merged.add(value);
+      }
       return Array.from(merged).sort((a, b) => b - a);
     }
 
@@ -60,18 +69,35 @@ export default function YearPicker({
     if (mode === "expenses") return expYears;
     if (mode === "projects") return projYears;
     return mergeYears(expYears, projYears);
-  }, [shouldFetch, providedYears, value, expense.years, project.years, mode]);
+  }, [
+    expenseDate,
+    shouldFetch,
+    providedYears,
+    value,
+    expense.years,
+    project.years,
+    mode,
+  ]);
 
-  const loading =
-    typeof loadingOverride === "boolean"
+  const loading = expenseDate
+    ? expenseDate.loadingYears
+    : typeof loadingOverride === "boolean"
       ? loadingOverride
       : shouldFetch && (expense.loading || project.loading);
-  const error =
-    typeof errorOverride !== "undefined"
+
+  const error = expenseDate
+    ? expenseDate.yearError
+    : typeof errorOverride !== "undefined"
       ? errorOverride
       : shouldFetch
         ? expense.error || project.error
         : null;
+
+  const selectedValue = expenseDate
+    ? expenseDate.selectedYear
+    : typeof value === "number"
+      ? value
+      : years[0];
 
   return (
     <div className={`relative inline-block ${className ?? ""}`}>
@@ -88,8 +114,14 @@ export default function YearPicker({
       ) : (
         <div className="relative w-20">
           <select
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
+            value={selectedValue}
+            onChange={(e) => {
+              if (expenseDate) {
+                expenseDate.setYear(e as ChangeEvent<HTMLSelectElement>);
+              } else {
+                onChange?.(Number(e.target.value));
+              }
+            }}
             className="
               w-full
               appearance-none
@@ -124,17 +156,17 @@ export default function YearPicker({
             "
           >
             <svg
-              xmlns='http://www.w3.org/2000/svg'
-              fill='none'
-              viewBox='0 0 24 24'
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
               strokeWidth={2}
-              stroke='currentColor'
-              className='w-4 h-4'
+              stroke="currentColor"
+              className="w-4 h-4"
             >
               <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                d='M19 9l-7 7-7-7'
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 9l-7 7-7-7"
               />
             </svg>
           </div>
