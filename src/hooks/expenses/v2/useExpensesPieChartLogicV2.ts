@@ -2,7 +2,8 @@ import { useMemo } from "react";
 
 import { peso } from "@/utils/expenses";
 
-export interface ExpensesPieChartDatum {
+export interface ExpensesPieChartDatum
+  extends Record<string, string | number> {
   category: string;
   total: number;
 }

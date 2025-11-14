@@ -2,7 +2,8 @@ import { useMemo } from "react";
 
 import { peso } from "@/utils/format";
 
-export interface MonthlyTrendChartDatum {
+export interface MonthlyTrendChartDatum
+  extends Record<string, string | number> {
   month: string;
   total: number;
 }

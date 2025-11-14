@@ -12,8 +12,13 @@ export interface UseCategoryPieChartLogicV2Options {
   data: CategoryPieChartDatum[];
 }
 
+type ChartDatum = {
+  name: string;
+  value: number;
+} & Record<string, string | number>;
+
 export interface UseCategoryPieChartLogicV2Result {
-  chartData: Array<{ name: string; value: number }>;
+  chartData: ChartDatum[];
   colors: string[];
   labelRenderer: (props: PieLabelRenderProps) => string;
   tooltipFormatter: (value: unknown) => string;
@@ -24,8 +29,12 @@ const COLORS = ["#111827", "#4B5563", "#9CA3AF", "#D1D5DB", "#E5E7EB"];
 export function useCategoryPieChartLogicV2({
   data,
 }: UseCategoryPieChartLogicV2Options): UseCategoryPieChartLogicV2Result {
-  const chartData = useMemo(
-    () => data.map((datum) => ({ name: datum.category, value: datum.total })),
+  const chartData = useMemo<ChartDatum[]>(
+    () =>
+      data.map((datum) => ({
+        name: datum.category,
+        value: datum.total,
+      })),
     [data]
   );
 
