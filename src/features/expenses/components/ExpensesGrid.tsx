@@ -6,19 +6,13 @@ import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
 import MonthTabs from "@/features/expenses/components/MonthTabs";
 import YearPicker from "@/components/ui/YearPicker";
 import { useExpensesGridLogicV2 } from "@/hooks/expenses/v2/useExpensesGridLogicV2";
+import { useExpenseDate } from "@/context/ExpenseDateContext";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Props                                                                   */
 /* -------------------------------------------------------------------------- */
 export interface ExpensesGridProps {
   yyyyMM: string;
-  selectedYear: number;
-  selectedMonth: string;
-  availableYears: number[];
-  onMonthChange: (yyyyMM: string) => void;
-  onYearChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
-  loadingYears: boolean;
-  yearError?: string | null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -26,20 +20,14 @@ export interface ExpensesGridProps {
 /* -------------------------------------------------------------------------- */
 export default function ExpensesGrid({
   yyyyMM,
-  selectedYear,
-  selectedMonth,
-  availableYears,
-  onMonthChange,
-  onYearChange,
-  loadingYears,
-  yearError,
 }: ExpensesGridProps) {
+  const { selectedYear, loadingYears, yearError } = useExpenseDate();
+
   const {
     projects,
     expenses,
     expensesLoading,
     categorySource,
-    months,
     error,
     setError,
     isEditModalOpen,
@@ -67,11 +55,7 @@ export default function ExpensesGrid({
 
       {/* --- Month Tabs + Year Picker --- */}
       <div className="flex items-end justify-between border-b border-[#3a3a3a] bg-[#121212]">
-        <MonthTabs
-          months={months}
-          currentMonth={selectedMonth}
-          onChange={(val: string) => onMonthChange(val)}
-        />
+        <MonthTabs />
 
         <div className="px-0 pb-[2px]">
           {loadingYears ? (
@@ -79,17 +63,7 @@ export default function ExpensesGrid({
           ) : yearError ? (
             <div className="text-[#f87171] text-sm">{yearError}</div>
           ) : (
-            <YearPicker
-              value={selectedYear}
-              onChange={(y) =>
-                onYearChange({
-                  target: { value: y.toString() },
-                } as React.ChangeEvent<HTMLSelectElement>)
-              }
-              mode="expenses"
-              className="w-28"
-              years={availableYears}
-            />
+            <YearPicker mode="expenses" className="w-28" />
           )}
         </div>
       </div>
