@@ -1,5 +1,13 @@
-import { useEffect, useState } from "react";
-import { getDoc, getDocs, doc, collection } from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import {
+  getDoc,
+  getDocs,
+  doc,
+  collection,
+  collectionGroup,
+  where,
+  query,
+} from "firebase/firestore";
 import { db } from "@/core/firebase";
 
 /* -------------------------------------------------------------------------- */
@@ -22,11 +30,99 @@ interface YearMonthCache {
   info: YearMonthInfo[];
 }
 
-let cachedYearMonthInfo: YearMonthCache | null = null;
-let cachedYearMonthError: string | null = null;
-let pendingYearMonthRequest: Promise<YearMonthCache> | null = null;
+export interface UseAvailableExpenseYearsAndMonthsOptions {
+  clientId?: string;
+  projectId?: string;
+}
 
-async function fetchYearMonthInfo(): Promise<YearMonthCache> {
+const cachedYearMonthInfo = new Map<string, YearMonthCache>();
+const cachedYearMonthError = new Map<string, string | null>();
+const pendingYearMonthRequest = new Map<string, Promise<YearMonthCache>>();
+
+function scopeKey(options: UseAvailableExpenseYearsAndMonthsOptions = {}): string {
+  const clientId = options.clientId?.trim();
+  const projectId = options.projectId?.trim();
+  if (clientId && projectId) {
+    return `${clientId}::${projectId}`;
+  }
+  return "__legacy__";
+}
+
+async function fetchYearMonthInfo(
+  options: UseAvailableExpenseYearsAndMonthsOptions = {}
+): Promise<YearMonthCache> {
+  if (options.clientId && options.projectId) {
+    try {
+      const { clientId, projectId } = options;
+      const prefix = `clients/${clientId}/projects/${projectId}/expenses/`;
+
+      const scopedMetaRef = doc(
+        db,
+        "clients",
+        clientId,
+        "projects",
+        projectId,
+        "metadata",
+        "expenseYears"
+      );
+      const scopedMetaSnap = await getDoc(scopedMetaRef);
+      const scopedMetaData = scopedMetaSnap.data();
+      const scopedYears = Array.isArray(scopedMetaData?.years)
+        ? scopedMetaData!.years.map(Number)
+        : [];
+
+      const scopedQuery = query(
+        collectionGroup(db, "items"),
+        where("projectId", "==", projectId)
+      );
+      const scopedSnapshot = await getDocs(scopedQuery);
+
+      const monthsByYear = new Map<number, Set<string>>();
+      scopedSnapshot.forEach((docSnap) => {
+        if (!docSnap.ref.path.startsWith(prefix)) {
+          return;
+        }
+
+        const yyyyMM = docSnap.get("yyyyMM");
+        if (typeof yyyyMM !== "string" || !/^\d{6}$/.test(yyyyMM)) {
+          return;
+        }
+
+        const yearNum = Number(yyyyMM.slice(0, 4));
+        if (!Number.isFinite(yearNum)) {
+          return;
+        }
+
+        if (!monthsByYear.has(yearNum)) {
+          monthsByYear.set(yearNum, new Set());
+        }
+        monthsByYear.get(yearNum)!.add(yyyyMM);
+      });
+
+      if (monthsByYear.size > 0 || scopedYears.length > 0) {
+        const combinedYears = new Set<number>(scopedYears);
+        for (const year of monthsByYear.keys()) {
+          combinedYears.add(year);
+        }
+
+        const info = Array.from(combinedYears)
+          .sort((a, b) => b - a)
+          .map((year) => ({
+            year,
+            months: Array.from(monthsByYear.get(year) ?? [])
+              .sort((a, b) => a.localeCompare(b)),
+          }));
+
+        return { info };
+      }
+    } catch (err) {
+      console.error(
+        "[useAvailableExpenseYearsAndMonths] Failed scoped fetch, falling back:",
+        err
+      );
+    }
+  }
+
   const metaRef = doc(db, "metadata", "expenseYears");
   const metaSnap = await getDoc(metaRef);
   const data = metaSnap.data();
@@ -70,10 +166,20 @@ async function fetchYearMonthInfo(): Promise<YearMonthCache> {
   return { info: sorted };
 }
 
-export function invalidateAvailableExpenseYearsCache(): void {
-  cachedYearMonthInfo = null;
-  cachedYearMonthError = null;
-  pendingYearMonthRequest = null;
+export function invalidateAvailableExpenseYearsCache(
+  options?: UseAvailableExpenseYearsAndMonthsOptions
+): void {
+  if (options) {
+    const key = scopeKey(options);
+    cachedYearMonthInfo.delete(key);
+    cachedYearMonthError.delete(key);
+    pendingYearMonthRequest.delete(key);
+    return;
+  }
+
+  cachedYearMonthInfo.clear();
+  cachedYearMonthError.clear();
+  pendingYearMonthRequest.clear();
 }
 
 function scheduleMicrotask(fn: () => void): void {
@@ -92,19 +198,35 @@ function scheduleMicrotask(fn: () => void): void {
  * Requires a Firestore document at `/metadata/expenseYears`
  * with structure: { years: [2024, 2025, 2026, ...] }
  */
-export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAndMonthsResult {
-  const [info, setInfo] = useState<YearMonthInfo[]>(
-    () => cachedYearMonthInfo?.info ?? []
+export function useAvailableExpenseYearsAndMonths(
+  options: UseAvailableExpenseYearsAndMonthsOptions = {}
+): UseAvailableExpenseYearsAndMonthsResult {
+  const normalizedOptions = useMemo(
+    () => ({
+      clientId: options.clientId?.trim() || undefined,
+      projectId: options.projectId?.trim() || undefined,
+    }),
+    [options.clientId, options.projectId]
   );
-  const [loading, setLoading] = useState<boolean>(!cachedYearMonthInfo);
-  const [error, setError] = useState<string | null>(cachedYearMonthError);
+  const key = useMemo(
+    () => scopeKey(normalizedOptions),
+    [normalizedOptions.clientId, normalizedOptions.projectId]
+  );
+  const [info, setInfo] = useState<YearMonthInfo[]>(
+    () => cachedYearMonthInfo.get(key)?.info ?? []
+  );
+  const [loading, setLoading] = useState<boolean>(!cachedYearMonthInfo.has(key));
+  const [error, setError] = useState<string | null>(
+    cachedYearMonthError.get(key) ?? null
+  );
 
   useEffect(() => {
     let active = true;
-    if (cachedYearMonthInfo) {
+    const cached = cachedYearMonthInfo.get(key);
+    if (cached) {
       scheduleMicrotask(() => {
         if (!active) return;
-        setInfo(cachedYearMonthInfo!.info);
+        setInfo(cached.info);
         setError(null);
         setLoading(false);
       });
@@ -114,10 +236,11 @@ export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAnd
       };
     }
 
-    if (cachedYearMonthError) {
+    const cachedError = cachedYearMonthError.get(key);
+    if (cachedError) {
       scheduleMicrotask(() => {
         if (!active) return;
-        setError(cachedYearMonthError);
+        setError(cachedError);
         setLoading(false);
       });
 
@@ -132,13 +255,14 @@ export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAnd
       setError(null);
     });
 
-    const pending = pendingYearMonthRequest ?? fetchYearMonthInfo();
-    pendingYearMonthRequest = pending;
+    const pending =
+      pendingYearMonthRequest.get(key) ?? fetchYearMonthInfo(normalizedOptions);
+    pendingYearMonthRequest.set(key, pending);
 
     pending
       .then((result) => {
-        cachedYearMonthInfo = result;
-        cachedYearMonthError = null;
+        cachedYearMonthInfo.set(key, result);
+        cachedYearMonthError.set(key, null);
 
         if (!active) return;
 
@@ -149,7 +273,7 @@ export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAnd
         console.error("[useAvailableExpenseYearsAndMonths] Error:", err);
         const message =
           err instanceof Error ? err.message : "Unknown error fetching years";
-        cachedYearMonthError = message;
+        cachedYearMonthError.set(key, message);
 
         if (!active) return;
 
@@ -157,8 +281,8 @@ export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAnd
         setInfo([]);
       })
       .finally(() => {
-        if (pendingYearMonthRequest === pending) {
-          pendingYearMonthRequest = null;
+        if (pendingYearMonthRequest.get(key) === pending) {
+          pendingYearMonthRequest.delete(key);
         }
 
         if (active) {
@@ -169,7 +293,7 @@ export function useAvailableExpenseYearsAndMonths(): UseAvailableExpenseYearsAnd
     return () => {
       active = false;
     };
-  }, []);
+  }, [key, normalizedOptions]);
 
   const latestYear = info[0]?.year;
   const latestMonth = info[0]?.months?.[info[0].months.length - 1];
