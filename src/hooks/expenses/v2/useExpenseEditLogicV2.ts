@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
-import { doc, setDoc, writeBatch } from "firebase/firestore";
-import { db } from "@/core/firebase";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import {
+  moveExpenseToMonth,
+  normalizeExpenseForWrite,
+  saveExpense,
+} from "@/data/expenses.v2.repo";
+import type { Expense } from "@/domain/models";
 import type { ItemRecord } from "@/domain/items";
 import { isoDateToYYYYMM } from "@/utils/time";
 import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
@@ -206,19 +209,17 @@ export function useExpenseEditLogicV2(
         isoDateToYYYYMM(values.invoiceDate) ??
         yyyyMM;
 
-      const normalized: Expense = {
+      const normalized = normalizeExpenseForWrite({
         ...values,
         projectId: trimmedProjectId,
         category: trimmedCategory,
         subCategory: trimmedSubCategory,
         invoiceDate: trimmedInvoiceDate,
         yyyyMM: targetMonth,
-        amount: Number(values.amount) || 0,
-        updatedAt: Date.now(),
-        createdAt: values.createdAt ?? Date.now(),
-      };
-
-      const parsed = ExpenseSchema.parse(normalized);
+        amount: values.amount,
+        paid: values.paid,
+        createdAt: values.createdAt,
+      });
 
       const fieldsToCompare: (keyof Expense)[] = [
         "projectId",
@@ -234,47 +235,40 @@ export function useExpenseEditLogicV2(
       ];
 
       const hasChanges = fieldsToCompare.some(
-        (key) => parsed[key] !== options.initialExpense[key]
+        (key) => normalized[key] !== options.initialExpense[key]
       );
 
-      if (!hasChanges && parsed.yyyyMM === yyyyMM) {
+      if (!hasChanges && normalized.yyyyMM === yyyyMM) {
         args?.onSaved?.(options.initialExpense);
         return;
       }
 
       try {
         const { learn } = await autoCategorize({
-          details: values.details ?? "",
-          category: values.category ?? "",
-          subCategory: values.subCategory ?? "",
+          details: normalized.details ?? "",
+          category: normalized.category ?? "",
+          subCategory: normalized.subCategory ?? "",
         });
-        await learn(values.category ?? "", values.subCategory ?? "");
-        console.log("[AutoCategorize] Learned item:", values.details);
+        await learn(normalized.category ?? "", normalized.subCategory ?? "");
+        console.log("[AutoCategorize] Learned item:", normalized.details);
       } catch (e) {
         console.warn("[AutoCategorize] Learn failed:", e);
       }
 
-      const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
-
-      if (parsed.yyyyMM === yyyyMM) {
-        await setDoc(destinationRef, parsed, { merge: true });
-      } else {
-        const sourceRef = doc(db, "expenses", yyyyMM, "items", parsed.id);
-        const batch = writeBatch(db);
-        batch.set(destinationRef, parsed, { merge: true });
-        batch.delete(sourceRef);
-        await batch.commit();
-      }
+      const saved =
+        normalized.yyyyMM === yyyyMM
+          ? await saveExpense(normalized)
+          : await moveExpenseToMonth(normalized, yyyyMM, normalized.yyyyMM);
 
       const projectsToInvalidate = new Set<string>();
       if (options.initialExpense.projectId)
         projectsToInvalidate.add(options.initialExpense.projectId);
-      if (parsed.projectId) projectsToInvalidate.add(parsed.projectId);
+      if (saved.projectId) projectsToInvalidate.add(saved.projectId);
       projectsToInvalidate.forEach((pid) => void invalidateProjectExpenses(pid));
 
-      args?.onSaved?.(parsed);
+      args?.onSaved?.(saved);
       setIsDirty(false);
-      setLastSyncedAt(parsed.updatedAt ?? Date.now());
+      setLastSyncedAt(saved.updatedAt ?? Date.now());
     } catch (err) {
       const first = getFirstZodError(err);
       if (first) setError(first);

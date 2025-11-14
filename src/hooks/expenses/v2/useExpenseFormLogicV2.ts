@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, Dispatch, SetStateAction } from "react";
 import { uuid } from "@/utils/id";
-import { addExpense } from "@/data/expenses.repo";
+import {
+  normalizeExpenseForWrite,
+  saveExpense,
+} from "@/data/expenses.v2.repo";
 import { isoDateToYYYYMM } from "@/utils/time";
 import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import { getFirstZodError } from "@/utils/zodHelpers";
 import { useAutoCategorize } from "@/utils/autoCategorize";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import type { Expense } from "@/domain/models";
 import type { ItemRecord } from "@/domain/items";
 
 export interface UseExpenseFormLogicOptions {
@@ -288,7 +291,7 @@ export function useExpenseFormLogicV2({
         isoDateToYYYYMM(trimmedInvoiceDate) ??
         yyyyMM;
 
-      const normalized: Expense = {
+      const normalized = normalizeExpenseForWrite({
         ...values,
         id: values.id || uuid(),
         projectId: trimmedProjectId,
@@ -297,28 +300,25 @@ export function useExpenseFormLogicV2({
         invoiceDate: trimmedInvoiceDate,
         datePaid: trimmedDatePaid,
         yyyyMM: targetMonth,
-        amount: Number(values.amount) || 0,
-        paid: Boolean(values.paid),
-        createdAt: values.createdAt ?? Date.now(),
-        updatedAt: Date.now(),
-      };
-
-      const parsed = ExpenseSchema.parse(normalized);
+        amount: values.amount,
+        paid: values.paid,
+        createdAt: values.createdAt,
+      });
 
       try {
         const { learn } = await autoCategorize({
-          details: parsed.details ?? "",
-          category: parsed.category ?? "",
-          subCategory: parsed.subCategory ?? "",
+          details: normalized.details ?? "",
+          category: normalized.category ?? "",
+          subCategory: normalized.subCategory ?? "",
         });
-        await learn(parsed.category ?? "", parsed.subCategory ?? "");
-        console.log("[AutoCategorize] Learned item:", parsed.details);
+        await learn(normalized.category ?? "", normalized.subCategory ?? "");
+        console.log("[AutoCategorize] Learned item:", normalized.details);
       } catch (learnErr) {
         console.warn("[AutoCategorize] Learn failed:", learnErr);
       }
 
-      await addExpense(parsed.yyyyMM, parsed);
-      void invalidateProjectExpenses(parsed.projectId);
+      const saved = await saveExpense(normalized);
+      void invalidateProjectExpenses(saved.projectId);
 
       setError(null);
       onError?.(null);
