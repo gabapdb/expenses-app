@@ -59,7 +59,7 @@ export function useMonthlyExpensesSectionLogicV2({
 }: UseMonthlyExpensesSectionLogicV2Options): UseMonthlyExpensesSectionLogicV2Result {
   const currentYear = new Date().getFullYear();
   const { byMonth, byCategory, totalsByMonth, grandTotal, loading, error } =
-    useProjectExpensesByYear(projectId, currentYear);
+    useProjectExpensesByYear({ projectId }, currentYear);
 
   const categories = useMemo<MonthCategoryTotal[]>(() => {
     const filtered = CATEGORY_LIST.filter(

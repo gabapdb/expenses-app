@@ -50,7 +50,10 @@ export default function BreakdownOfCostsSection({
   clientId,
   projectId,
 }: BreakdownOfCostsSectionProps) {
-  const { data, loading, refetch } = useProjectExpenseBreakdown(projectId);
+  const { data, loading, refetch } = useProjectExpenseBreakdown({
+    clientId,
+    projectId,
+  });
   const { ce: clientCostEstimates, save } = useProjectCostEstimates(
     clientId,
     projectId

@@ -318,7 +318,9 @@ export function useExpenseFormLogicV2({
       }
 
       const saved = await saveExpense(normalized);
-      void invalidateProjectExpenses(saved.projectId);
+      if (saved.projectId) {
+        void invalidateProjectExpenses({ projectId: saved.projectId });
+      }
 
       setError(null);
       onError?.(null);
