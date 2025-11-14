@@ -2,11 +2,9 @@
 
 import { useMemo } from "react";
 import type { Expense } from "@/domain/models";
-import type { Project } from "@/hooks/projects/useProjects";
-
 export interface UseExpensesTableLogicV2Options {
   expenses: Expense[];
-  projects: Project[];
+  projects: Array<{ id: string; name: string }>;
 }
 
 export interface UseExpensesTableLogicV2Result {
