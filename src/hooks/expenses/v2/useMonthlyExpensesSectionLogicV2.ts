@@ -19,6 +19,7 @@ export interface UseMonthlyExpensesSectionLogicV2Options {
   projectId: string;
   startDate?: string;
   endDate?: string;
+  clientId?: string;
 }
 
 export interface UseMonthlyExpensesSectionLogicV2Result {
@@ -56,10 +57,18 @@ export function useMonthlyExpensesSectionLogicV2({
   projectId,
   startDate,
   endDate,
+  clientId,
 }: UseMonthlyExpensesSectionLogicV2Options): UseMonthlyExpensesSectionLogicV2Result {
   const currentYear = new Date().getFullYear();
+  const scope = useMemo(
+    () => ({
+      projectId,
+      clientId,
+    }),
+    [clientId, projectId]
+  );
   const { byMonth, byCategory, totalsByMonth, grandTotal, loading, error } =
-    useProjectExpensesByYear({ projectId }, currentYear);
+    useProjectExpensesByYear(scope, currentYear);
 
   const categories = useMemo<MonthCategoryTotal[]>(() => {
     const filtered = CATEGORY_LIST.filter(

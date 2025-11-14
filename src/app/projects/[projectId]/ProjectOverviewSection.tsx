@@ -7,10 +7,17 @@ import { CATEGORY_LIST } from "@/config/categories";
 import type { Project } from "@/hooks/projects/useProjects";
 
 export default function ProjectOverviewSection({ project }: { project: Project }) {
+  const scope = useMemo(
+    () => ({
+      projectId: project.id,
+      clientId: project.clientId,
+    }),
+    [project.clientId, project.id]
+  );
 
   // Aggregate yearly expenses for chart
   const { byCategory, grandTotal, loading, error } = useProjectExpensesByYear(
-    { projectId: project.id },
+    scope,
     new Date().getFullYear()
   );
 

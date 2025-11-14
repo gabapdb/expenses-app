@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useProjectExpenseBreakdown } from "@/hooks/expenses/useProjectExpenseBreakdown";
 import { useProjectCostEstimates } from "@/hooks/clients/useProjectCostEstimates";
 import { peso, pct } from "@/utils/format";
-import { RotateCw } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /* Types & constants                                                          */
@@ -50,10 +49,15 @@ export default function BreakdownOfCostsSection({
   clientId,
   projectId,
 }: BreakdownOfCostsSectionProps) {
-  const { data, loading, refetch } = useProjectExpenseBreakdown({
-    clientId,
-    projectId,
-  });
+  const scope = useMemo(
+    () => ({
+      clientId,
+      projectId,
+    }),
+    [clientId, projectId]
+  );
+
+  const { data, loading, refetch } = useProjectExpenseBreakdown(scope);
   const { ce: clientCostEstimates, save } = useProjectCostEstimates(
     clientId,
     projectId
@@ -62,25 +66,26 @@ export default function BreakdownOfCostsSection({
   const [activeTab, setActiveTab] = useState<TabKey>("cabinets");
   const [editingKey, setEditingKey] = useState<TradeKey | null>(null);
   const [draft, setDraft] = useState<number>(0);
-  const [lastUpdated, setLastUpdated] = useState("");
 
   const costEstimates = clientCostEstimates ?? EMPTY_COST_ESTIMATES;
 
   const refresh = async () => {
     await refetch();
-    setLastUpdated(
-      new Date().toLocaleString("en-PH", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-      })
-    );
+    // You can uncomment if you want the "Last updated" display back later
+    // setLastUpdated(
+    //   new Date().toLocaleString("en-PH", {
+    //     hour: "2-digit",
+    //     minute: "2-digit",
+    //     second: "2-digit",
+    //     hour12: true,
+    //   })
+    // );
   };
 
   const saveCE = async (key: TradeKey, value: number) => {
     try {
       await save({ ...costEstimates, [key]: value });
+      await refresh();
     } finally {
       setEditingKey(null);
     }
@@ -189,7 +194,10 @@ export default function BreakdownOfCostsSection({
   /* Render                                                                   */
   /* ------------------------------------------------------------------------ */
   return (
-    <section className="space-y-6">
+    <section
+      className={`space-y-6 ${loading ? "opacity-50 transition-opacity" : ""}`}
+      aria-busy={loading}
+    >
      
 
       {/* Tabs */}
