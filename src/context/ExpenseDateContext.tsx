@@ -11,6 +11,7 @@ import {
 import type { ReactNode, ChangeEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAvailableExpenseYearsAndMonths } from "@/hooks/expenses/useAvailableExpenseYearsAndMonths";
+import { useProject } from "@/hooks/projects/useProjects";
 
 export interface ExpenseDateContextValue {
   selectedYear: number;
@@ -30,16 +31,48 @@ const normalize = (val: string | null | undefined): string | null => {
   return /^\d{6}$/.test(val.trim()) ? val.trim() : null;
 };
 
+const paramToString = (value: string | string[] | undefined): string | null => {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value) && value.length > 0) {
+    return value[0] ?? null;
+  }
+  return null;
+};
+
+const trimToNull = (value: string | null): string | null => {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
 export function ExpenseDateProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const params = useParams<{ yyyyMM?: string }>();
+  const params = useParams<{
+    yyyyMM?: string | string[];
+    projectId?: string | string[];
+    year?: string | string[];
+    month?: string | string[];
+  }>();
+
+  const projectParam = trimToNull(paramToString(params?.projectId));
+  const yearParam = paramToString(params?.year);
+  const monthParam = paramToString(params?.month);
+  const yyyyMMParam = paramToString(params?.yyyyMM);
+
+  const normalizedYear = yearParam ? yearParam.padStart(4, "0").slice(-4) : null;
+  const normalizedMonth = monthParam ? monthParam.padStart(2, "0").slice(-2) : null;
+  const nestedYYYYMM =
+    normalizedYear && normalizedMonth ? `${normalizedYear}${normalizedMonth}` : null;
+
+  const routeProjectId = projectParam;
+  const routeYYYYMM = normalize(yyyyMMParam ?? nestedYYYYMM);
 
   const now = useMemo(() => new Date(), []);
   const defaultYear = now.getFullYear();
   const defaultMonth = String(now.getMonth() + 1).padStart(2, "0");
   const defaultYYYYMM = `${defaultYear}${defaultMonth}`;
-
-  const routeYYYYMM = normalize(typeof params?.yyyyMM === "string" ? params.yyyyMM : null);
 
   const [localYYYYMM, setLocalYYYYMM] = useState(() => routeYYYYMM ?? defaultYYYYMM);
 
@@ -47,19 +80,37 @@ export function ExpenseDateProvider({ children }: { children: ReactNode }) {
   const selectedYear = Number(activeYYYYMM.slice(0, 4));
   const selectedMonth = activeYYYYMM.slice(4, 6);
 
+  const { data: activeProject } = useProject(routeProjectId ?? undefined);
+  const scopedClientId = activeProject?.clientId?.trim();
+
   const { info, latestYear, latestMonth, loading, error } =
-    useAvailableExpenseYearsAndMonths();
+    useAvailableExpenseYearsAndMonths({
+      projectId: routeProjectId ?? undefined,
+      clientId: scopedClientId || undefined,
+    });
 
   const availableYears = info.map((i) => i.year);
+
+  const pathFor = useCallback(
+    (targetYYYYMM: string) => {
+      if (routeProjectId) {
+        const nextYear = targetYYYYMM.slice(0, 4);
+        const nextMonth = targetYYYYMM.slice(4, 6);
+        return `/projects/${routeProjectId}/expenses/${nextYear}/${nextMonth}`;
+      }
+      return `/expenses/${targetYYYYMM}`;
+    },
+    [routeProjectId]
+  );
 
   const setMonth = useCallback(
     (nextYYYYMM: string) => {
       const valid = normalize(nextYYYYMM);
       if (!valid) return;
       setLocalYYYYMM(valid);
-      router.push(`/expenses/${valid}`);
+      router.push(pathFor(valid));
     },
-    [router]
+    [pathFor, router]
   );
 
   const setYear = useCallback(
@@ -72,9 +123,9 @@ export function ExpenseDateProvider({ children }: { children: ReactNode }) {
       const fallback = months.length > 0 ? months[months.length - 1] : `${y}01`;
 
       setLocalYYYYMM(fallback);
-      router.push(`/expenses/${fallback}`);
+      router.push(pathFor(fallback));
     },
-    [info, router]
+    [info, pathFor, router]
   );
 
   useEffect(() => {
@@ -86,9 +137,9 @@ export function ExpenseDateProvider({ children }: { children: ReactNode }) {
 
     queueMicrotask(() => {
       setLocalYYYYMM(latestMonth);
-      router.replace(`/expenses/${latestMonth}`);
+      router.replace(pathFor(latestMonth));
     });
-  }, [loading, latestYear, latestMonth, info, activeYYYYMM, router]);
+  }, [loading, latestYear, latestMonth, info, activeYYYYMM, pathFor, router]);
 
   return (
     <ExpenseDateContext.Provider
