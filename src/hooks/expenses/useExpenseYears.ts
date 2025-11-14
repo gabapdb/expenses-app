@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/core/firebase";
 
@@ -15,17 +15,56 @@ interface UseExpenseYearsResult {
 
 interface UseExpenseYearsOptions {
   enabled?: boolean;
+  clientId?: string;
+  projectId?: string;
 }
 
 interface ExpenseYearsCache {
   years: number[];
 }
 
-let cachedExpenseYears: ExpenseYearsCache | null = null;
-let cachedExpenseYearsError: string | null = null;
-let pendingExpenseYears: Promise<ExpenseYearsCache> | null = null;
+interface ExpenseYearsScope {
+  clientId?: string;
+  projectId?: string;
+}
 
-async function loadExpenseYears(): Promise<ExpenseYearsCache> {
+const cachedExpenseYears = new Map<string, ExpenseYearsCache>();
+const cachedExpenseYearsError = new Map<string, string | null>();
+const pendingExpenseYears = new Map<string, Promise<ExpenseYearsCache>>();
+
+function expenseScopeKey(scope: ExpenseYearsScope = {}): string {
+  const clientId = scope.clientId?.trim();
+  const projectId = scope.projectId?.trim();
+  if (clientId && projectId) {
+    return `${clientId}::${projectId}`;
+  }
+  return "__legacy__";
+}
+
+async function loadExpenseYears(scope: ExpenseYearsScope = {}): Promise<ExpenseYearsCache> {
+  if (scope.clientId && scope.projectId) {
+    try {
+      const scopedRef = doc(
+        db,
+        "clients",
+        scope.clientId,
+        "projects",
+        scope.projectId,
+        "metadata",
+        "expenseYears"
+      );
+      const scopedSnap = await getDoc(scopedRef);
+      const scopedData = scopedSnap.data();
+
+      if (scopedData && Array.isArray(scopedData.years)) {
+        const scopedYears = scopedData.years.map(Number).sort((a, b) => b - a);
+        return { years: scopedYears };
+      }
+    } catch (err) {
+      console.error("[useExpenseYears] Failed scoped fetch, falling back:", err);
+    }
+  }
+
   const ref = doc(db, "metadata", "expenseYears");
   const snap = await getDoc(ref);
   const data = snap.data();
@@ -38,10 +77,18 @@ async function loadExpenseYears(): Promise<ExpenseYearsCache> {
   return { years };
 }
 
-export function invalidateExpenseYearsCache(): void {
-  cachedExpenseYears = null;
-  cachedExpenseYearsError = null;
-  pendingExpenseYears = null;
+export function invalidateExpenseYearsCache(scope?: ExpenseYearsScope): void {
+  if (scope) {
+    const key = expenseScopeKey(scope);
+    cachedExpenseYears.delete(key);
+    cachedExpenseYearsError.delete(key);
+    pendingExpenseYears.delete(key);
+    return;
+  }
+
+  cachedExpenseYears.clear();
+  cachedExpenseYearsError.clear();
+  pendingExpenseYears.clear();
 }
 
 function scheduleMicrotask(fn: () => void): void {
@@ -59,15 +106,26 @@ export function useExpenseYears(
   options: UseExpenseYearsOptions = {}
 ): UseExpenseYearsResult {
   const { enabled = true } = options;
+  const normalizedScope = useMemo(
+    () => ({
+      clientId: options.clientId?.trim() || undefined,
+      projectId: options.projectId?.trim() || undefined,
+    }),
+    [options.clientId, options.projectId]
+  );
+  const key = useMemo(
+    () => expenseScopeKey(normalizedScope),
+    [normalizedScope.clientId, normalizedScope.projectId]
+  );
 
   const [years, setYears] = useState<number[]>(
-    () => cachedExpenseYears?.years ?? []
+    () => cachedExpenseYears.get(key)?.years ?? []
   );
   const [internalLoading, setInternalLoading] = useState<boolean>(
-    enabled && !cachedExpenseYears && !cachedExpenseYearsError
+    enabled && !cachedExpenseYears.has(key) && !cachedExpenseYearsError.has(key)
   );
   const [internalError, setInternalError] = useState<string | null>(
-    enabled ? cachedExpenseYearsError : null
+    enabled ? cachedExpenseYearsError.get(key) ?? null : null
   );
 
   useEffect(() => {
@@ -76,10 +134,11 @@ export function useExpenseYears(
     }
 
     let active = true;
-    if (cachedExpenseYears) {
+    const cached = cachedExpenseYears.get(key);
+    if (cached) {
       scheduleMicrotask(() => {
         if (!active) return;
-        setYears(cachedExpenseYears!.years);
+        setYears(cached.years);
         setInternalError(null);
         setInternalLoading(false);
       });
@@ -89,10 +148,11 @@ export function useExpenseYears(
       };
     }
 
-    if (cachedExpenseYearsError) {
+    const cachedError = cachedExpenseYearsError.get(key);
+    if (cachedError) {
       scheduleMicrotask(() => {
         if (!active) return;
-        setInternalError(cachedExpenseYearsError);
+        setInternalError(cachedError);
         setInternalLoading(false);
       });
 
@@ -107,13 +167,14 @@ export function useExpenseYears(
       setInternalError(null);
     });
 
-    const pending = pendingExpenseYears ?? loadExpenseYears();
-    pendingExpenseYears = pending;
+    const pending =
+      pendingExpenseYears.get(key) ?? loadExpenseYears(normalizedScope);
+    pendingExpenseYears.set(key, pending);
 
     pending
       .then((result) => {
-        cachedExpenseYears = result;
-        cachedExpenseYearsError = null;
+        cachedExpenseYears.set(key, result);
+        cachedExpenseYearsError.set(key, null);
 
         if (!active) return;
 
@@ -124,15 +185,15 @@ export function useExpenseYears(
         console.error("[useExpenseYears] Error:", err);
 
         const message = err instanceof Error ? err.message : "Unknown error";
-        cachedExpenseYearsError = message;
+        cachedExpenseYearsError.set(key, message);
 
         if (!active) return;
 
         setInternalError(message);
       })
       .finally(() => {
-        if (pendingExpenseYears === pending) {
-          pendingExpenseYears = null;
+        if (pendingExpenseYears.get(key) === pending) {
+          pendingExpenseYears.delete(key);
         }
 
         if (active) {
@@ -143,7 +204,7 @@ export function useExpenseYears(
     return () => {
       active = false;
     };
-  }, [enabled]);
+  }, [enabled, key, normalizedScope]);
 
   return {
     years,
