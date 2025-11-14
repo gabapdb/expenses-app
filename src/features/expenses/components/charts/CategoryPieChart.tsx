@@ -1,24 +1,16 @@
 "use client";
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  type PieLabelRenderProps,
-} from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts";
+
 import Card from "@/components/ui/Card";
-import { peso, pct } from "@/utils/format";
+import { useCategoryPieChartLogicV2 } from "@/hooks/expenses/v2/useCategoryPieChartLogicV2";
 
-const COLORS = ["#111827", "#4B5563", "#9CA3AF", "#D1D5DB", "#E5E7EB"];
-
-interface CategoryDatum {
-  category: string;
-  total: number;
-}
-
-export default function CategoryPieChart({ data }: { data: CategoryDatum[] }) {
-  const grand = data.reduce((s, d) => s + d.total, 0) || 1;
+export default function CategoryPieChart({
+  data,
+}: {
+  data: { category: string; total: number }[];
+}) {
+  const { chartData, colors, labelRenderer, tooltipFormatter } =
+    useCategoryPieChartLogicV2({ data });
 
   return (
     <Card>
@@ -27,25 +19,19 @@ export default function CategoryPieChart({ data }: { data: CategoryDatum[] }) {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={data.map((d) => ({ name: d.category, value: d.total }))}
+              data={chartData}
               cx="50%"
               cy="50%"
               outerRadius={80}
               dataKey="value"
               labelLine={false}
-              // ✅ Explicitly type the label renderer
-              label={(props: PieLabelRenderProps) => {
-                const { name, value } = props;
-                const numericValue = typeof value === "number" ? value : 0;
-                const percent = pct((numericValue / grand) * 100);
-                return `${name}: ${percent}`;
-              }}
+              label={labelRenderer}
             >
-              {data.map((_, i) => (
-                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              {chartData.map((datum, index) => (
+                <Cell key={datum.name} fill={colors[index % colors.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(v: unknown) => peso(typeof v === "number" ? v : 0)} />
+            <Tooltip formatter={tooltipFormatter} />
           </PieChart>
         </ResponsiveContainer>
       </div>

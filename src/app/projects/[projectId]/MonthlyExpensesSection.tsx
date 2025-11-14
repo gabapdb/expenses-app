@@ -1,11 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
-import { useProjectExpensesByYear } from "@/hooks/expenses/useProjectExpensesByYear";
-import { allMonths, peso } from "@/utils/expenses";
-import { CATEGORY_LIST } from "@/config/categories";
-
-type MonthlyBreakdown = Record<string, Record<string, number>>;
+import { useMonthlyExpensesSectionLogicV2 } from "@/hooks/expenses/v2/useMonthlyExpensesSectionLogicV2";
 
 interface MonthlyExpensesSectionProps {
   projectId: string;
@@ -13,59 +8,13 @@ interface MonthlyExpensesSectionProps {
   endDate?: string;
 }
 
-/* -------------------------------------------------------------------------- */
-/* 🧮 Derive visible months                                                   */
-/* -------------------------------------------------------------------------- */
-function deriveVisibleMonths(
-  allMonths: string[],
-  byMonth: MonthlyBreakdown,
-  startDate?: string,
-  endDate?: string
-): string[] {
-  const monthsWithData = Object.keys(byMonth)
-    .filter((m) => {
-      const total = Object.values(byMonth[m] || {}).reduce((a, b) => a + b, 0);
-      return total > 0;
-    })
-    .sort((a, b) => allMonths.indexOf(a) - allMonths.indexOf(b));
-
-  if (monthsWithData.length === 0) return [];
-  const startIdx = allMonths.indexOf(monthsWithData[0]);
-  const endIdx = allMonths.indexOf(monthsWithData[monthsWithData.length - 1]);
-  return allMonths.slice(startIdx, endIdx + 1);
-}
-
-/* -------------------------------------------------------------------------- */
-/* 🧩 Component                                                               */
-/* -------------------------------------------------------------------------- */
 export default function MonthlyExpensesSection({
   projectId,
   startDate,
   endDate,
 }: MonthlyExpensesSectionProps) {
-  const {
-    byMonth,
-    byCategory,
-    totalsByMonth,
-    grandTotal,
-    loading,
-    error,
-  } = useProjectExpensesByYear(projectId, new Date().getFullYear());
-
-  const categories = useMemo(
-    () =>
-      CATEGORY_LIST.filter((c) => c !== "Additional Cabinet Labor").map(
-        (c) => c as string
-      ),
-    []
-  );
-
-  const visibleMonths = useMemo(
-    () => deriveVisibleMonths(allMonths, byMonth, startDate, endDate),
-    [byMonth, startDate, endDate]
-  );
-
-  const hasData = grandTotal > 0 && visibleMonths.length > 0;
+  const { loading, error, hasData, categories, months, grandTotal } =
+    useMonthlyExpensesSectionLogicV2({ projectId, startDate, endDate });
 
   return (
     <section className="space-y-6">
@@ -85,29 +34,29 @@ export default function MonthlyExpensesSection({
                 <th className="px-4 py-2 text-right text-sm font-medium text-[#e5e5e5]">
                   Total
                 </th>
-                {categories.map((cat) => (
+                {categories.map((category) => (
                   <th
-                    key={cat}
+                    key={category.name}
                     className="px-4 py-2 text-right text-sm font-medium text-[#e5e5e5]"
                   >
-                    {cat}
+                    {category.name}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {visibleMonths.map((month) => (
+              {months.map((month) => (
                 <tr
-                  key={month}
+                  key={month.month}
                   className="border-b border-[#3a3a3a] hover:bg-[#2a2a2a]/70 transition-colors"
                 >
-                  <td className="px-4 py-[6px]">{month}</td>
+                  <td className="px-4 py-[6px]">{month.month}</td>
                   <td className="px-4 py-[6px] text-right font-medium">
-                    {peso(totalsByMonth[month] ?? 0)}
+                    {month.total}
                   </td>
-                  {categories.map((cat) => (
-                    <td key={cat} className="px-4 py-[6px] text-right">
-                      {peso(byMonth[month]?.[cat] ?? 0)}
+                  {month.categories.map((category) => (
+                    <td key={category.name} className="px-4 py-[6px] text-right">
+                      {category.total}
                     </td>
                   ))}
                 </tr>
@@ -118,11 +67,11 @@ export default function MonthlyExpensesSection({
                   Total
                 </td>
                 <td className="px-4 py-2 text-right text-[#f3f4f6]">
-                  {peso(grandTotal)}
+                  {grandTotal}
                 </td>
-                {categories.map((cat) => (
-                  <td key={cat} className="px-4 py-2 text-right text-[#f3f4f6]">
-                    {peso(byCategory[cat] ?? 0)}
+                {categories.map((category) => (
+                  <td key={category.name} className="px-4 py-2 text-right text-[#f3f4f6]">
+                    {category.total}
                   </td>
                 ))}
               </tr>
