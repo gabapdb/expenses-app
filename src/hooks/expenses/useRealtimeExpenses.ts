@@ -103,7 +103,7 @@ export function useRealtimeExpenses(
     let unsubscribe: (() => void) | undefined;
     let active = true;
 
-    const attachListener = (pathSegments: string[]) => {
+    const attachListener = (...pathSegments: string[]) => {
       const ref = collection(db, ...pathSegments);
       const q = query(
         ref,
@@ -157,7 +157,7 @@ export function useRealtimeExpenses(
     const subscribeToLegacy = () => {
       if (!active) return;
       unsubscribe?.();
-      unsubscribe = attachListener(["expenses", yyyyMM, "items"]);
+      unsubscribe = attachListener("expenses", yyyyMM, "items");
     };
 
     (async () => {
@@ -184,7 +184,7 @@ export function useRealtimeExpenses(
           }
 
           if (!scopedSnapshot.empty) {
-            unsubscribe = attachListener(segments);
+            unsubscribe = attachListener(...segments);
             return;
           }
         }

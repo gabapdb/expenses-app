@@ -97,7 +97,10 @@ export function useProjectExpenses(
     let unsubscribe: (() => void) | undefined;
     let active = true;
 
-    const attachListener = (pathSegments: string[], useProjectFilter: boolean) => {
+    const attachListener = (
+      useProjectFilter: boolean,
+      ...pathSegments: string[]
+    ) => {
       const ref = collection(db, ...pathSegments);
       const baseQuery = useProjectFilter
         ? query(
@@ -159,7 +162,7 @@ export function useProjectExpenses(
     const subscribeLegacy = () => {
       if (!active) return;
       unsubscribe?.();
-      unsubscribe = attachListener(["expenses", yyyyMM, "items"], true);
+      unsubscribe = attachListener(true, "expenses", yyyyMM, "items");
     };
 
     (async () => {
@@ -187,7 +190,7 @@ export function useProjectExpenses(
           }
 
           if (!scopedSnapshot.empty) {
-            unsubscribe = attachListener(segments, false);
+            unsubscribe = attachListener(false, ...segments);
             return;
           }
         }
