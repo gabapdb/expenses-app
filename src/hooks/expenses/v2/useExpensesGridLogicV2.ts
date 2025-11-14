@@ -46,8 +46,7 @@ export function useExpensesGridLogicV2({
   yyyyMM,
   selectedYear,
 }: UseExpensesGridLogicV2Options): UseExpensesGridLogicV2Result {
-  const { data: projects, loading: projectsLoading, error: projectsError } =
-    useProjects();
+  const { data: projects, loading: projectsLoading } = useProjects();
   const { categoryMap } = useCategories();
   const {
     data: expenses,
@@ -124,7 +123,7 @@ export function useExpensesGridLogicV2({
     expensesLoading,
     months,
     categorySource,
-    error: localError ?? projectsError ?? expensesError ?? null,
+    error: localError ?? expensesError ?? null,
     setError: setLocalError,
     editingExpense,
     isEditModalOpen: editingExpense !== null,

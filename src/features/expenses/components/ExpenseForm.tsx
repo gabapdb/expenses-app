@@ -1,164 +1,41 @@
 "use client";
 
-import { useState } from "react";
-import { z } from "zod";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { uuid } from "@/utils/id";
-import { addExpense } from "@/data/expenses.repo";
-import { isoDateToYYYYMM } from "@/utils/time";
-import type { Expense } from "@/domain/models";
-import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
-import { getFirstZodError } from "@/utils/zodHelpers";
-import { useAutoCategorize } from "@/utils/autoCategorize";
 import DetailsAutocomplete from "@/features/expenses/components/DetailsAutocomplete";
+import { useExpenseFormLogicV2 } from "@/hooks/expenses/v2/useExpenseFormLogicV2";
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const fmtDateInput = (iso?: string) =>
-  iso ? new Date(iso).toISOString().slice(0, 10) : "";
-
-const zOptStr = z.string().optional().or(z.literal(""));
-const zRequiredStr = z.string().min(1);
-
-const expenseSchema = z.object({
-  id: z.string().min(1, "Missing ID"),
-  yyyyMM: z.string(),
-  projectId: z.string().min(1, "Project required"),
-  invoiceDate: zRequiredStr,
-  datePaid: zOptStr,
-  modeOfPayment: zOptStr,
-  payee: zOptStr,
-  category: zRequiredStr,
-  subCategory: zRequiredStr,
-  details: zOptStr,
-  amount: z.number().min(0, "Amount must be ≥ 0"),
-  paid: z.boolean(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-});
+interface ExpenseFormProps {
+  yyyyMM: string;
+  projects: { id: string; name: string }[];
+  categorySource: Record<string, readonly string[]>;
+  onError: (err: string | null) => void;
+}
 
 export default function ExpenseForm({
   yyyyMM,
   projects,
   categorySource,
   onError,
-}: {
-  yyyyMM: string;
-  projects: { id: string; name: string }[];
-  categorySource: Record<string, readonly string[]>;
-  onError: (err: string | null) => void;
-}) {
-  const [saving, setSaving] = useState(false);
-  const [highlightCat, setHighlightCat] = useState(false);
-  const [highlightSub, setHighlightSub] = useState(false);
-
-  const [draft, setDraft] = useState<Partial<Expense>>({
-    id: uuid(),
+}: ExpenseFormProps) {
+  const {
+    values,
+    saving,
+    highlightCat,
+    highlightSub,
+    handleFieldChange,
+    handleCategoryChange,
+    handleSubCategoryChange,
+    handleDetailsChange,
+    handleDetailsSuggestionSelect,
+    handleDetailsBlur,
+    handleSubmit,
+    fmtDateInput,
+  } = useExpenseFormLogicV2({
     yyyyMM,
-    projectId: "",
-    invoiceDate: "",
-    datePaid: "",
-    modeOfPayment: "",
-    payee: "",
-    category: "",
-    subCategory: "",
-    details: "",
-    amount: 0,
-    paid: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    categorySource,
+    onError,
   });
-
-  const autoCategorize = useAutoCategorize();
-  const catSrc = categorySource as Record<string, string[]>;
-
-  async function handleSave() {
-  try {
-    const targetMonth =
-      isoDateToYYYYMM(draft.datePaid) ??
-      isoDateToYYYYMM(draft.invoiceDate) ??
-      yyyyMM;
-
-    const data = expenseSchema.parse({
-      id: draft.id ?? crypto.randomUUID(),
-      yyyyMM: targetMonth,
-      ...draft,
-      amount: Number(draft.amount) || 0,
-      paid: !!draft.paid,
-      createdAt: draft.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
-    });
-
-    setSaving(true);
-    await addExpense(targetMonth, data as Expense);
-
-    // 🧠 Learn mapping for this item
-    try {
-      const { learn } = await autoCategorize({
-        details: data.details ?? "",
-        category: data.category ?? "",
-        subCategory: data.subCategory ?? "",
-      });
-      await learn(data.category ?? "", data.subCategory ?? "");
-      console.log("[AutoCategorize] Learned item:", data.details);
-    } catch (e) {
-      console.warn("[AutoCategorize] Learn failed:", e);
-    }
-
-    void invalidateProjectExpenses(data.projectId);
-    onError(null);
-
-    // Reset form
-    setDraft({
-      id: uuid(),
-      yyyyMM,
-      projectId: "",
-      invoiceDate: todayISO(),
-      datePaid: todayISO(),
-      modeOfPayment: "",
-      payee: "",
-      category: "",
-      subCategory: "",
-      details: "",
-      amount: 0,
-      paid: false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-  } catch (err) {
-    const first = getFirstZodError(err);
-    if (first) onError(first);
-    else onError("Failed to save expense.");
-  } finally {
-    setSaving(false);
-  }
-}
-
-
-  /** 🔍 Auto-categorize and briefly highlight */
-  async function handleDetailsBlur(nextDetails: string) {
-    const details = nextDetails.trim();
-    if (!details) return;
-
-    const { suggestion } = await autoCategorize({
-      details,
-      category: draft.category ?? "",
-      subCategory: draft.subCategory ?? "",
-    });
-    if (suggestion) {
-      setDraft((current) => ({
-        ...current,
-        category: suggestion.category,
-        subCategory: suggestion.subCategory,
-      }));
-      setHighlightCat(true);
-      setHighlightSub(true);
-      setTimeout(() => {
-        setHighlightCat(false);
-        setHighlightSub(false);
-      }, 1000);
-    }
-  }
 
   return (
     <div className="rounded-xl border border-[#3a3a3a] bg-[#1f1f1f] p-6 shadow-sm space-y-6">
@@ -167,8 +44,9 @@ export default function ExpenseForm({
         <FormField label="Project">
           <select
             className="w-full min-w-[160px] rounded-md border border-[#3a3a3a] bg-[#242424] px-3 py-1.5 text-sm text-[#e5e5e5]"
-            value={draft.projectId ?? ""}
-            onChange={(e) => setDraft({ ...draft, projectId: e.target.value })}
+            name="projectId"
+            value={values.projectId ?? ""}
+            onChange={handleFieldChange}
           >
             <option value="">Select project…</option>
             {projects.map((p) => (
@@ -183,10 +61,9 @@ export default function ExpenseForm({
         <FormField label="Invoice Date">
           <Input
             type="date"
-            value={fmtDateInput(draft.invoiceDate)}
-            onChange={(e) =>
-              setDraft({ ...draft, invoiceDate: e.target.value || todayISO() })
-            }
+            name="invoiceDate"
+            value={fmtDateInput(values.invoiceDate)}
+            onChange={handleFieldChange}
             className="input-dark"
           />
         </FormField>
@@ -194,10 +71,9 @@ export default function ExpenseForm({
         <FormField label="Date Paid">
           <Input
             type="date"
-            value={fmtDateInput(draft.datePaid)}
-            onChange={(e) =>
-              setDraft({ ...draft, datePaid: e.target.value || todayISO() })
-            }
+            name="datePaid"
+            value={fmtDateInput(values.datePaid)}
+            onChange={handleFieldChange}
             className="input-dark"
           />
         </FormField>
@@ -206,11 +82,10 @@ export default function ExpenseForm({
         <FormField label="Mode of Payment">
           <Input
             type="text"
+            name="modeOfPayment"
             placeholder="Cash / Bank"
-            value={draft.modeOfPayment ?? ""}
-            onChange={(e) =>
-              setDraft({ ...draft, modeOfPayment: e.target.value })
-            }
+            value={values.modeOfPayment ?? ""}
+            onChange={handleFieldChange}
             className="input-dark"
           />
         </FormField>
@@ -219,9 +94,10 @@ export default function ExpenseForm({
         <FormField label="Payee">
           <Input
             type="text"
+            name="payee"
             placeholder="Payee name"
-            value={draft.payee ?? ""}
-            onChange={(e) => setDraft({ ...draft, payee: e.target.value })}
+            value={values.payee ?? ""}
+            onChange={handleFieldChange}
             className="input-dark"
           />
         </FormField>
@@ -230,26 +106,12 @@ export default function ExpenseForm({
 
         <FormField label="Details">
           <DetailsAutocomplete
-            value={draft.details ?? ""}
-            onChange={(val) => setDraft((prev) => ({ ...prev, details: val }))}
-            onSelectSuggestion={(item) => {
-              setDraft((prev) => ({
-                ...prev,
-                details: item.name,
-                category: item.category,
-                subCategory: item.subCategory,
-              }));
-              setHighlightCat(true);
-              setHighlightSub(true);
-              setTimeout(() => {
-                setHighlightCat(false);
-                setHighlightSub(false);
-              }, 1000);
-            }}
+            value={values.details ?? ""}
+            onChange={handleDetailsChange}
+            onSelectSuggestion={handleDetailsSuggestionSelect}
             onBlurAutoCategorize={handleDetailsBlur}
           />
         </FormField>
-
 
         {/* Category */}
         <FormField label="Category">
@@ -257,13 +119,11 @@ export default function ExpenseForm({
             className={`input-dark transition-colors duration-300 ${
               highlightCat ? "bg-[#374151]/60 border-[#6366f1]" : ""
             }`}
-            value={draft.category ?? ""}
-            onChange={(e) =>
-              setDraft({ ...draft, category: e.target.value, subCategory: "" })
-            }
+            value={values.category ?? ""}
+            onChange={(e) => handleCategoryChange(e.target.value)}
           >
             <option value="">Select category…</option>
-            {Object.keys(catSrc).map((cat) => (
+            {Object.keys(categorySource).map((cat) => (
               <option key={cat} value={cat}>
                 {cat}
               </option>
@@ -277,18 +137,14 @@ export default function ExpenseForm({
             className={`input-dark disabled:opacity-50 transition-colors duration-300 ${
               highlightSub ? "bg-[#374151]/60 border-[#6366f1]" : ""
             }`}
-            value={draft.subCategory ?? ""}
-            onChange={(e) =>
-              setDraft({ ...draft, subCategory: e.target.value })
-            }
-            disabled={!draft.category}
+            value={values.subCategory ?? ""}
+            onChange={(e) => handleSubCategoryChange(e.target.value)}
+            disabled={!values.category}
           >
             <option value="">
-              {draft.category
-                ? "Select subcategory…"
-                : "(choose category first)"}
+              {values.category ? "Select subcategory…" : "(choose category first)"}
             </option>
-            {(catSrc[draft.category ?? ""] ?? []).map((sub) => (
+            {(categorySource[values.category ?? ""] ?? []).map((sub) => (
               <option key={sub} value={sub}>
                 {sub}
               </option>
@@ -301,10 +157,9 @@ export default function ExpenseForm({
           <Input
             type="number"
             step="0.01"
-            value={String(draft.amount ?? 0)}
-            onChange={(e) =>
-              setDraft({ ...draft, amount: Number(e.target.value || 0) })
-            }
+            name="amount"
+            value={String(values.amount ?? 0)}
+            onChange={handleFieldChange}
             className="text-right input-dark"
           />
         </FormField>
@@ -314,10 +169,9 @@ export default function ExpenseForm({
           <label className="relative inline-flex items-center cursor-pointer">
             <input
               type="checkbox"
-              checked={!!draft.paid}
-              onChange={(e) =>
-                setDraft({ ...draft, paid: e.target.checked })
-              }
+              name="paid"
+              checked={!!values.paid}
+              onChange={handleFieldChange}
               className="sr-only peer"
             />
             <div className="w-10 h-5 bg-[#3a3a3a] rounded-full peer-checked:bg-[#6366f1] transition-all" />
@@ -328,7 +182,9 @@ export default function ExpenseForm({
 
       <div className="flex justify-center pt-2">
         <Button
-          onClick={handleSave}
+          onClick={() => {
+            void handleSubmit();
+          }}
           disabled={saving}
           className="w-full sm:w-auto bg-[#2a2a2a] text-[#e5e5e5] px-6 py-2 rounded-md hover:bg-[#3a3a3a] transition font-medium"
         >
