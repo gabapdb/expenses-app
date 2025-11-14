@@ -213,7 +213,14 @@ function ProjectYearRow({
   year: number;
   onData: (data: YearlyData) => void;
 }) {
-  const data = useProjectExpensesByYear({ projectId: project.id }, year);
+  const scope = useMemo(
+    () => ({
+      projectId: project.id,
+      clientId: project.clientId,
+    }),
+    [project.clientId, project.id]
+  );
+  const data = useProjectExpensesByYear(scope, year);
   const { byMonth, totalsByMonth } = data;
 
   const totalSpent = useMemo(

@@ -113,10 +113,9 @@ export function useExpenseYears(
     }),
     [options.clientId, options.projectId]
   );
-  const key = useMemo(
-    () => expenseScopeKey(normalizedScope),
-    [normalizedScope.clientId, normalizedScope.projectId]
-  );
+  const key = useMemo(() => expenseScopeKey(normalizedScope), [normalizedScope]);
+  const { clientId: normalizedClientId, projectId: normalizedProjectId } =
+    normalizedScope;
 
   const [years, setYears] = useState<number[]>(
     () => cachedExpenseYears.get(key)?.years ?? []
@@ -168,7 +167,11 @@ export function useExpenseYears(
     });
 
     const pending =
-      pendingExpenseYears.get(key) ?? loadExpenseYears(normalizedScope);
+      pendingExpenseYears.get(key) ??
+      loadExpenseYears({
+        clientId: normalizedClientId,
+        projectId: normalizedProjectId,
+      });
     pendingExpenseYears.set(key, pending);
 
     pending
@@ -205,7 +208,7 @@ export function useExpenseYears(
       active = false;
     };
     // FIX: normalizedScope is an object → unstable dependency
-  }, [enabled, key]);
+  }, [enabled, key, normalizedClientId, normalizedProjectId]);
 
   return {
     years,

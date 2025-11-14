@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Card from "@/components/ui/Card";
 import type { Project } from "@/domain/models";
 import { TEAM_OPTIONS, type TeamOption } from "@/config/teams";
@@ -17,9 +17,14 @@ interface ProjectInfoSectionProps {
 /* -------------------------------------------------------------------------- */
 export default function ProjectInfoSection({ project }: ProjectInfoSectionProps) {
   const [editing, setEditing] = useState(false);
-  const { totalAmount, loading, error } = useProjectExpenseBreakdown({
-    projectId: project.id,
-  });
+  const scope = useMemo(
+    () => ({
+      projectId: project.id,
+      clientId: project.clientId,
+    }),
+    [project.clientId, project.id]
+  );
+  const { totalAmount, loading, error } = useProjectExpenseBreakdown(scope);
 
   // ✅ Ensure the team value is always a valid TeamOption
   const safeTeam: TeamOption =

@@ -208,10 +208,9 @@ export function useAvailableExpenseYearsAndMonths(
     }),
     [options.clientId, options.projectId]
   );
-  const key = useMemo(
-    () => scopeKey(normalizedOptions),
-    [normalizedOptions.clientId, normalizedOptions.projectId]
-  );
+  const key = useMemo(() => scopeKey(normalizedOptions), [normalizedOptions]);
+  const { clientId: normalizedClientId, projectId: normalizedProjectId } =
+    normalizedOptions;
   const [info, setInfo] = useState<YearMonthInfo[]>(
     () => cachedYearMonthInfo.get(key)?.info ?? []
   );
@@ -256,7 +255,11 @@ export function useAvailableExpenseYearsAndMonths(
     });
 
     const pending =
-      pendingYearMonthRequest.get(key) ?? fetchYearMonthInfo(normalizedOptions);
+      pendingYearMonthRequest.get(key) ??
+      fetchYearMonthInfo({
+        clientId: normalizedClientId,
+        projectId: normalizedProjectId,
+      });
     pendingYearMonthRequest.set(key, pending);
 
     pending
@@ -294,7 +297,7 @@ export function useAvailableExpenseYearsAndMonths(
       active = false;
     };
     // FIX: normalizedOptions is an object → unstable dependency
-  }, [key]);
+  }, [key, normalizedClientId, normalizedProjectId]);
 
   const latestYear = info[0]?.year;
   const latestMonth = info[0]?.months?.[info[0].months.length - 1];
