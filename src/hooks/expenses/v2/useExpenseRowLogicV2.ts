@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { deleteExpense, updateExpensePaid } from "@/data/expenses.repo";
+import { deleteExpense, togglePaid } from "@/data/expenses.v2.repo";
 import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import { getFirstZodError } from "@/utils/zodHelpers";
 import { peso } from "@/utils/format";
@@ -92,7 +92,7 @@ export function useExpenseRowLogicV2({
     setPaid(nextPaid);
 
     try {
-      await updateExpensePaid(yyyyMM, expense.id, nextPaid, {});
+      await togglePaid(yyyyMM, expense.id, nextPaid);
       if (resolvedProjectId) {
         void invalidateProjectExpenses(resolvedProjectId);
       }

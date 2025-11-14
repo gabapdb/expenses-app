@@ -12,7 +12,7 @@ import { useCategories } from "@/hooks/expenses/useCategories";
 import { useRealtimeExpenses } from "@/hooks/expenses/useRealtimeExpenses";
 import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
 import { useProjects } from "@/hooks/projects/useProjects";
-import { deleteExpense, updateExpensePaid } from "@/data/expenses.repo";
+import { deleteExpense, togglePaid } from "@/data/expenses.v2.repo";
 import { getFirstZodError } from "@/utils/zodHelpers";
 import type { Expense } from "@/domain/models";
 import type { Project } from "@/hooks/projects/useProjects";
@@ -86,7 +86,7 @@ export function useExpensesGridLogicV2({
   const handleTogglePaid = useCallback(
     async (expense: Expense) => {
       try {
-        await updateExpensePaid(yyyyMM, expense.id, !expense.paid, {});
+        await togglePaid(yyyyMM, expense.id, !expense.paid);
         void invalidateProjectExpenses(expense.projectId);
       } catch (err) {
         const msg = getFirstZodError(err) ?? "Failed to toggle paid state.";
