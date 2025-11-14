@@ -1,20 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useProjects } from "@/hooks/projects/useProjects";
-import { useCategories } from "@/hooks/expenses/useCategories";
-import { CATEGORY_MAP } from "@/config/categories";
-import { useRealtimeExpenses } from "@/hooks/expenses/useRealtimeExpenses";
-import { deleteExpense, updateExpensePaid } from "@/data/expenses.repo";
-import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
-import { getFirstZodError } from "@/utils/zodHelpers";
-import type { Expense } from "@/domain/models";
-
 import ExpensesTable from "@/features/expenses/components/ExpensesTable";
 import ExpenseForm from "@/features/expenses/components/ExpenseForm";
 import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
 import MonthTabs from "@/features/expenses/components/MonthTabs";
 import YearPicker from "@/components/ui/YearPicker";
+import { useExpensesGridLogicV2 } from "@/hooks/expenses/v2/useExpensesGridLogicV2";
 
 /* -------------------------------------------------------------------------- */
 /* 🧩 Props                                                                   */
@@ -43,46 +34,24 @@ export default function ExpensesGrid({
   loadingYears,
   yearError,
 }: ExpensesGridProps) {
-  const { data: projects } = useProjects();
-  const { categoryMap } = useCategories();
-  const { data: expenses, loading } = useRealtimeExpenses(yyyyMM);
-
-  const [error, setError] = useState<string | null>(null);
-  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-
-  const categorySource =
-    Object.keys(categoryMap).length > 0 ? categoryMap : CATEGORY_MAP;
-
-  const months = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, m) => ({
-        name: new Date(0, m).toLocaleString("default", { month: "long" }),
-        value: `${selectedYear}${String(m + 1).padStart(2, "0")}`,
-      })),
-    [selectedYear]
-  );
-
-  async function handleTogglePaid(expense: Expense) {
-    try {
-      await updateExpensePaid(yyyyMM, expense.id, !expense.paid, {});
-      void invalidateProjectExpenses(expense.projectId);
-    } catch (err) {
-      const msg = getFirstZodError(err) ?? "Failed to toggle paid state.";
-      setError(msg);
-      console.error("[ExpensesGrid] togglePaid error:", msg);
-    }
-  }
-
-  async function handleDelete(expense: Expense) {
-    try {
-      await deleteExpense(yyyyMM, expense.id);
-      void invalidateProjectExpenses(expense.projectId);
-    } catch (err) {
-      const msg = getFirstZodError(err) ?? "Failed to delete expense.";
-      setError(msg);
-      console.error("[ExpensesGrid] deleteExpense error:", msg);
-    }
-  }
+  const {
+    projects,
+    expenses,
+    expensesLoading,
+    categorySource,
+    months,
+    error,
+    setError,
+    isEditModalOpen,
+    editingExpense,
+    openEdit,
+    closeEdit,
+    handleTogglePaid,
+    handleDelete,
+  } = useExpensesGridLogicV2({
+    yyyyMM,
+    selectedYear,
+  });
 
   /* ---------------------------------------------------------------------- */
   /* 🖼️ Render                                                              */
@@ -128,22 +97,22 @@ export default function ExpensesGrid({
       <ExpensesTable
         expenses={expenses}
         projects={projects}
-        loading={loading}
+        loading={expensesLoading}
         onTogglePaid={handleTogglePaid}
-        onEdit={(e) => setEditingExpense(e)}
+        onEdit={openEdit}
         onDelete={handleDelete}
       />
 
       {error && <div className="text-sm text-[#f87171] font-medium">{error}</div>}
 
-      {editingExpense && (
+      {isEditModalOpen && editingExpense && (
         <ExpenseEditModal
           yyyyMM={editingExpense.yyyyMM ?? yyyyMM}
           expense={editingExpense}
           projects={projects}
           categorySource={categorySource}
-          onClose={() => setEditingExpense(null)}
-          onSaved={() => setEditingExpense(null)}
+          onClose={closeEdit}
+          onSaved={closeEdit}
         />
       )}
     </div>
