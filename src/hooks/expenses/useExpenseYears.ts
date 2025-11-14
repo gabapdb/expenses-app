@@ -204,7 +204,8 @@ export function useExpenseYears(
     return () => {
       active = false;
     };
-  }, [enabled, key, normalizedScope]);
+    // FIX: normalizedScope is an object → unstable dependency
+  }, [enabled, key]);
 
   return {
     years,
