@@ -1,28 +1,27 @@
 "use client";
 
-import { useEffect, useReducer, useState } from "react";
-import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { useExpense } from "@/hooks/expenses/useExpense";
+
 import Card from "@/components/ui/Card";
-import { peso } from "@/utils/format";
 import ExpenseEditModal from "@/features/expenses/components/ExpenseEditModal";
 import SectionHeader from "@/components/ui/SectionHeader";
-import type { Expense } from "@/domain/models";
+import { useExpenseDetailPageLogicV2 } from "@/hooks/expenses/v2/useExpenseDetailPageLogicV2";
 import "@/styles/pages.css";
 
 export default function ExpenseDetailPage() {
-  const params = useParams<{ yyyyMM: string; expenseId: string }>();
-  const yyyyMM = params?.yyyyMM ?? "";
-  const expenseId = params?.expenseId ?? "";
-
-  const { data: fetchedExpense, loading, error } = useExpense(yyyyMM, expenseId);
-  const [expense, dispatchExpense] = useReducer(expenseStateReducer, null);
-  const [editing, setEditing] = useState(false);
-
-  useEffect(() => {
-    dispatchExpense({ type: "sync", payload: fetchedExpense ?? null });
-  }, [fetchedExpense]);
+  const {
+    loading,
+    error,
+    expense,
+    yyyyMM,
+    expenseId,
+    fields,
+    subtitle,
+    editing,
+    openEdit,
+    closeEdit,
+    handleSaved,
+  } = useExpenseDetailPageLogicV2();
 
   if (loading)
     return <div className="panel text-muted">Loading expense…</div>;
@@ -42,13 +41,13 @@ export default function ExpenseDetailPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
-      <SectionHeader title="Expense Details" subtitle={expense.payee ?? ""} />
+      <SectionHeader title="Expense Details" subtitle={subtitle} />
 
       <div className="panel mt-4 space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-base font-semibold text-gray-100">Expense Info</h1>
           <button
-            onClick={() => setEditing(true)}
+            onClick={openEdit}
             className="text-xs bg-gray-800 text-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-700"
           >
             ✏️ Edit
@@ -57,27 +56,18 @@ export default function ExpenseDetailPage() {
 
         <Card>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            <Field label="Payee" value={expense.payee} />
-            <Field label="Category" value={expense.category} />
-            <Field label="Sub-Category" value={expense.subCategory ?? "—"} />
-            <Field label="Details" value={expense.details ?? "—"} />
-            <Field label="Mode of Payment" value={expense.modeOfPayment ?? "—"} />
-            <Field label="Invoice Date" value={expense.invoiceDate} />
-            <Field label="Date Paid" value={expense.datePaid ?? "—"} />
-            <Field label="Amount" value={peso(expense.amount)} />
-            <Field label="Paid" value={expense.paid ? "✅ Yes" : "❌ No"} />
+            {fields.map((field) => (
+              <Field key={field.label} label={field.label} value={field.value} />
+            ))}
           </div>
         </Card>
 
-        {editing && (
+        {editing && expense && (
           <ExpenseEditModal
             yyyyMM={yyyyMM}
             expense={expense}
-            onClose={() => setEditing(false)}
-            onSaved={(updated) => {
-              dispatchExpense({ type: "update", payload: updated });
-              setEditing(false);
-            }}
+            onClose={closeEdit}
+            onSaved={handleSaved}
           />
         )}
       </div>
@@ -94,26 +84,3 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
-type ExpenseAction =
-  | { type: "sync"; payload: Expense | null }
-  | { type: "update"; payload: Expense };
-
-function expenseStateReducer(
-  state: Expense | null,
-  action: ExpenseAction
-): Expense | null {
-  switch (action.type) {
-    case "sync": {
-      const next = action.payload;
-      if (!next) return null;
-      if (!state) return next;
-      if (state.id !== next.id) return next;
-      if ((state.updatedAt ?? 0) >= (next.updatedAt ?? 0)) return state;
-      return next;
-    }
-    case "update":
-      return action.payload;
-    default:
-      return state;
-  }
-}

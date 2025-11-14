@@ -1,16 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { doc, setDoc, writeBatch } from "firebase/firestore";
-import { db } from "@/core/firebase";
-import { ExpenseSchema, type Expense } from "@/domain/models";
+import { type Expense } from "@/domain/models";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
-import { isoDateToYYYYMM } from "@/utils/time";
-import { invalidateProjectExpenses } from "@/hooks/expenses/useProjectExpensesCollection";
-import { getFirstZodError } from "@/utils/zodHelpers";
-import { useAutoCategorize } from "@/utils/autoCategorize"; // 🧩 NEW
 import DetailsAutocomplete from "@/features/expenses/components/DetailsAutocomplete"; // 🧩 NEW
+import { useExpenseEditLogicV2 } from "@/hooks/expenses/v2/useExpenseEditLogicV2";
 
 interface ExpenseEditModalProps {
   yyyyMM: string;
@@ -20,9 +14,6 @@ interface ExpenseEditModalProps {
   onClose: () => void;
   onSaved?: (saved: Expense) => void;
 }
-
-const fmtDateInput = (iso?: string) =>
-  iso ? new Date(iso).toISOString().slice(0, 10) : "";
 
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
@@ -35,201 +26,28 @@ export default function ExpenseEditModal({
   onClose,
   onSaved,
 }: ExpenseEditModalProps) {
-  const [values, setValues] = useState<Expense>(expense);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState(expense.updatedAt ?? 0);
-
-  const [highlightCat, setHighlightCat] = useState(false);
-  const [highlightSub, setHighlightSub] = useState(false);
-
-  const autoCategorize = useAutoCategorize(); // 🧩 hook
   const catSrc = categorySource as Record<string, readonly string[]>;
 
-  /* ------------------------- Sync with live updates ------------------------ */
-  useEffect(() => {
-    const incomingUpdatedAt = expense.updatedAt ?? 0;
-    if (expense.id !== values.id) {
-      setValues(expense);
-      setIsDirty(false);
-      setLastSyncedAt(incomingUpdatedAt);
-      return;
-    }
-    if (!isDirty) {
-      setValues(expense);
-      setLastSyncedAt(incomingUpdatedAt);
-      return;
-    }
-    if (incomingUpdatedAt > lastSyncedAt) {
-      setValues(expense);
-      setIsDirty(false);
-      setLastSyncedAt(incomingUpdatedAt);
-    }
-  }, [expense, isDirty, lastSyncedAt, values.id]);
-
-  /* --------------------------- Derived validation -------------------------- */
-  const memoizedTrimmedFields = useMemo(
-    () => ({
-      projectId: values.projectId?.trim() ?? "",
-      category: values.category?.trim() ?? "",
-      subCategory: values.subCategory?.trim() ?? "",
-    }),
-    [values.projectId, values.category, values.subCategory]
-  );
-
-  const memoizedValidationHints = useMemo(() => {
-    const missing: string[] = [];
-    if (!memoizedTrimmedFields.projectId) missing.push("Project");
-    if (!values.invoiceDate?.trim()) missing.push("Invoice Date");
-    if (!memoizedTrimmedFields.category) missing.push("Category");
-    if (!memoizedTrimmedFields.subCategory) missing.push("Subcategory");
-    if (!Number.isFinite(values.amount) || values.amount < 0)
-      missing.push("Amount");
-    return { missing, isValid: missing.length === 0 };
-  }, [memoizedTrimmedFields, values.amount, values.invoiceDate]);
-
-  /* ------------------------------ Field change ----------------------------- */
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setValues((prev) => {
-      const next = { ...prev };
-      if ((next as Record<string, unknown>)[name] !== value) {
-        (next as Record<string, unknown>)[name] = value;
-        if (!isDirty) setIsDirty(true);
-      }
-      return next;
-    });
-  };
-
-  /* ------------------------------ AutoCategorize ---------------------------- */
-  async function handleDetailsBlur(nextDetails: string) {
-    const details = nextDetails.trim();
-    if (!details) return;
-
-    const { suggestion } = await autoCategorize({
-      details,
-      category: values.category ?? "",
-      subCategory: values.subCategory ?? "",
-    });
-    if (suggestion) {
-      setValues((current) => ({
-        ...current,
-        category: suggestion.category,
-        subCategory: suggestion.subCategory,
-      }));
-      setHighlightCat(true);
-      setHighlightSub(true);
-      setTimeout(() => {
-        setHighlightCat(false);
-        setHighlightSub(false);
-      }, 1000);
-    }
-  }
-
-  /* ------------------------------- Save logic ------------------------------ */
-  const handleSave = async () => {
-    setSaving(true);
-    setError(null);
-    try {
-      if (!memoizedValidationHints.isValid) {
-        throw new Error(
-          `Please complete the following before saving: ${memoizedValidationHints.missing.join(", ")}`
-        );
-      }
-
-      const trimmedProjectId = memoizedTrimmedFields.projectId;
-      const trimmedCategory = memoizedTrimmedFields.category;
-      const trimmedSubCategory = memoizedTrimmedFields.subCategory;
-      const trimmedInvoiceDate = values.invoiceDate?.trim() ?? "";
-
-      const targetMonth =
-        isoDateToYYYYMM(values.datePaid) ??
-        isoDateToYYYYMM(values.invoiceDate) ??
-        yyyyMM;
-
-      const normalized = {
-        ...values,
-        projectId: trimmedProjectId,
-        category: trimmedCategory,
-        subCategory: trimmedSubCategory,
-        invoiceDate: trimmedInvoiceDate,
-        yyyyMM: targetMonth,
-        amount: Number(values.amount) || 0,
-        updatedAt: Date.now(),
-        createdAt: values.createdAt ?? Date.now(),
-      };
-
-      const parsed = ExpenseSchema.parse(normalized);
-
-      const fieldsToCompare: (keyof Expense)[] = [
-        "projectId",
-        "yyyyMM",
-        "payee",
-        "category",
-        "subCategory",
-        "details",
-        "modeOfPayment",
-        "invoiceDate",
-        "datePaid",
-        "amount",
-      ];
-
-      const hasChanges = fieldsToCompare.some(
-        (key) => parsed[key] !== expense[key]
-      );
-
-      if (!hasChanges && parsed.yyyyMM === yyyyMM) {
-        onSaved?.(expense);
-        onClose();
-        return;
-      }
-
-      // 🧠 Learn mapping before saving
-try {
-  const { learn } = await autoCategorize({
-    details: values.details ?? "",
-    category: values.category ?? "",
-    subCategory: values.subCategory ?? "",
+  const {
+    values,
+    saving,
+    error,
+    validation,
+    highlightCat,
+    highlightSub,
+    handleFieldChange,
+    handleCategoryChange,
+    handleSubCategoryChange,
+    handleDetailsChange,
+    handleDetailsSuggestionSelect,
+    handleDetailsBlur,
+    handleSave,
+    fmtDateInput,
+  } = useExpenseEditLogicV2({
+    yyyyMM,
+    initialExpense: expense,
+    categorySource: categorySource ?? {},
   });
-  await learn(values.category ?? "", values.subCategory ?? "");
-  console.log("[AutoCategorize] Learned item:", values.details);
-} catch (e) {
-  console.warn("[AutoCategorize] Learn failed:", e);
-}
-
-
-      const destinationRef = doc(db, "expenses", parsed.yyyyMM, "items", parsed.id);
-      if (parsed.yyyyMM === yyyyMM) {
-        await setDoc(destinationRef, parsed, { merge: true });
-      } else {
-        const sourceRef = doc(db, "expenses", yyyyMM, "items", parsed.id);
-        const batch = writeBatch(db);
-        batch.set(destinationRef, parsed, { merge: true });
-        batch.delete(sourceRef);
-        await batch.commit();
-      }
-
-      const projectsToInvalidate = new Set<string>();
-      if (expense.projectId) projectsToInvalidate.add(expense.projectId);
-      if (parsed.projectId) projectsToInvalidate.add(parsed.projectId);
-      projectsToInvalidate.forEach((pid) => void invalidateProjectExpenses(pid));
-
-      onSaved?.(parsed);
-      setIsDirty(false);
-      setLastSyncedAt(parsed.updatedAt ?? Date.now());
-      onClose();
-    } catch (err) {
-      const first = getFirstZodError(err);
-      if (first) setError(first);
-      else if (err instanceof Error) setError(err.message);
-      else setError("Unknown error saving expense.");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   /* ------------------------------------------------------------------------ */
   /* Render                                                                   */
@@ -256,7 +74,7 @@ try {
               name="projectId"
               className="input-dark"
               value={values.projectId ?? ""}
-              onChange={handleChange}
+              onChange={handleFieldChange}
             >
               <option value="">Select project…</option>
               {projects.map((p) => (
@@ -273,7 +91,7 @@ try {
               name="invoiceDate"
               type="date"
               value={fmtDateInput(values.invoiceDate)}
-              onChange={handleChange}
+              onChange={handleFieldChange}
               className="input-dark"
             />
           </FormField>
@@ -283,7 +101,7 @@ try {
               name="datePaid"
               type="date"
               value={fmtDateInput(values.datePaid)}
-              onChange={handleChange}
+              onChange={handleFieldChange}
               className="input-dark"
             />
           </FormField>
@@ -294,7 +112,7 @@ try {
               name="modeOfPayment"
               placeholder="Cash / Bank"
               value={values.modeOfPayment ?? ""}
-              onChange={handleChange}
+              onChange={handleFieldChange}
               className="input-dark"
             />
           </FormField>
@@ -305,38 +123,20 @@ try {
               name="payee"
               placeholder="Payee name"
               value={values.payee ?? ""}
-              onChange={handleChange}
+              onChange={handleFieldChange}
               className="input-dark"
             />
           </FormField>
 
           {/* 🧩 DETAILS BEFORE CATEGORY */}
           <FormField label="Details">
-  <DetailsAutocomplete
-    value={values.details ?? ""}
-    onChange={(val) =>
-      setValues((prev) => ({
-        ...prev,
-        details: val,
-      }))
-    }
-    onSelectSuggestion={(item) => {
-      setValues((prev) => ({
-        ...prev,
-        details: item.name,
-        category: item.category,
-        subCategory: item.subCategory,
-      }));
-      setHighlightCat(true);
-      setHighlightSub(true);
-      setTimeout(() => {
-        setHighlightCat(false);
-        setHighlightSub(false);
-      }, 1000);
-    }}
-    onBlurAutoCategorize={handleDetailsBlur}
-  />
-</FormField>
+            <DetailsAutocomplete
+              value={values.details ?? ""}
+              onChange={handleDetailsChange}
+              onSelectSuggestion={handleDetailsSuggestionSelect}
+              onBlurAutoCategorize={handleDetailsBlur}
+            />
+          </FormField>
 
           {/* Category */}
           <FormField label="Category">
@@ -346,13 +146,7 @@ try {
                 highlightCat ? "bg-[#374151]/60 border-[#6366f1]" : ""
               }`}
               value={values.category ?? ""}
-              onChange={(e) =>
-                setValues((prev) => ({
-                  ...prev,
-                  category: e.target.value,
-                  subCategory: "",
-                }))
-              }
+              onChange={(e) => handleCategoryChange(e.target.value)}
             >
               <option value="">Select category…</option>
               {Object.keys(catSrc).map((cat) => (
@@ -371,7 +165,7 @@ try {
                 highlightSub ? "bg-[#374151]/60 border-[#6366f1]" : ""
               }`}
               value={values.subCategory ?? ""}
-              onChange={handleChange}
+              onChange={(e) => handleSubCategoryChange(e.target.value)}
               disabled={!values.category}
             >
               <option value="">
@@ -393,16 +187,16 @@ try {
               name="amount"
               type="number"
               value={String(values.amount ?? 0)}
-              onChange={handleChange}
+              onChange={handleFieldChange}
               className="input-dark text-right"
             />
           </FormField>
         </div>
 
-        {!memoizedValidationHints.isValid && (
+        {!validation.isValid && (
           <div className="text-sm text-amber-500 mt-4">
             Complete required fields:{" "}
-            {memoizedValidationHints.missing.join(", ")}
+            {validation.missing.join(", ")}
           </div>
         )}
 
@@ -416,8 +210,8 @@ try {
           </Button>
           <Button
             type="button"
-            onClick={handleSave}
-            disabled={saving || !memoizedValidationHints.isValid}
+            onClick={() => handleSave({ onSaved })}
+            disabled={saving || !validation.isValid}
             className="bg-[#6366f1] text-white hover:bg-[#4f46e5]"
           >
             {saving ? "Saving…" : "Save Changes"}
