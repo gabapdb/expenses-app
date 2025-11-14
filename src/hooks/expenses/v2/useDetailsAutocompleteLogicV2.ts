@@ -18,7 +18,7 @@ export interface UseDetailsAutocompleteLogicV2Options {
 }
 
 export interface UseDetailsAutocompleteLogicV2Result {
-  containerRef: RefObject<HTMLDivElement>;
+  containerRef: RefObject<HTMLDivElement | null>;
   suggestions: ItemRecord[];
   isOpen: boolean;
   highlightIndex: number;
@@ -41,7 +41,7 @@ export function useDetailsAutocompleteLogicV2({
   const [isOpen, setIsOpen] = useState(false);
   const [highlightIndex, setHighlightIndexState] = useState(0);
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void (async () => {
