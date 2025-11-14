@@ -94,7 +94,7 @@ export function useExpenseRowLogicV2({
     try {
       await togglePaid(yyyyMM, expense.id, nextPaid);
       if (resolvedProjectId) {
-        void invalidateProjectExpenses(resolvedProjectId);
+        void invalidateProjectExpenses({ projectId: resolvedProjectId });
       }
       onChange?.();
     } catch (err) {
@@ -116,7 +116,7 @@ export function useExpenseRowLogicV2({
     try {
       await deleteExpense(yyyyMM, expense.id);
       if (resolvedProjectId) {
-        void invalidateProjectExpenses(resolvedProjectId);
+        void invalidateProjectExpenses({ projectId: resolvedProjectId });
       }
       onChange?.();
     } catch (err) {

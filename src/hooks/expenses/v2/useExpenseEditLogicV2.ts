@@ -264,7 +264,11 @@ export function useExpenseEditLogicV2(
       if (options.initialExpense.projectId)
         projectsToInvalidate.add(options.initialExpense.projectId);
       if (saved.projectId) projectsToInvalidate.add(saved.projectId);
-      projectsToInvalidate.forEach((pid) => void invalidateProjectExpenses(pid));
+      projectsToInvalidate.forEach((pid) => {
+        if (pid) {
+          void invalidateProjectExpenses({ projectId: pid });
+        }
+      });
 
       args?.onSaved?.(saved);
       setIsDirty(false);

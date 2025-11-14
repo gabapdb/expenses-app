@@ -17,7 +17,9 @@ interface ProjectInfoSectionProps {
 /* -------------------------------------------------------------------------- */
 export default function ProjectInfoSection({ project }: ProjectInfoSectionProps) {
   const [editing, setEditing] = useState(false);
-  const { totalAmount, loading, error } = useProjectExpenseBreakdown(project.id);
+  const { totalAmount, loading, error } = useProjectExpenseBreakdown({
+    projectId: project.id,
+  });
 
   // ✅ Ensure the team value is always a valid TeamOption
   const safeTeam: TeamOption =

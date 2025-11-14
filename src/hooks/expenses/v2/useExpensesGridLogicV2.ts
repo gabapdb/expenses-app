@@ -87,7 +87,9 @@ export function useExpensesGridLogicV2({
     async (expense: Expense) => {
       try {
         await togglePaid(yyyyMM, expense.id, !expense.paid);
-        void invalidateProjectExpenses(expense.projectId);
+        if (expense.projectId) {
+          void invalidateProjectExpenses({ projectId: expense.projectId });
+        }
       } catch (err) {
         const msg = getFirstZodError(err) ?? "Failed to toggle paid state.";
         setLocalError(msg);
@@ -101,7 +103,9 @@ export function useExpensesGridLogicV2({
     async (expense: Expense) => {
       try {
         await deleteExpense(yyyyMM, expense.id);
-        void invalidateProjectExpenses(expense.projectId);
+        if (expense.projectId) {
+          void invalidateProjectExpenses({ projectId: expense.projectId });
+        }
       } catch (err) {
         const msg = getFirstZodError(err) ?? "Failed to delete expense.";
         setLocalError(msg);

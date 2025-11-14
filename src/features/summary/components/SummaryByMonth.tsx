@@ -352,7 +352,7 @@ function ProjectWithExpenses({
   month: string;
   onData: (id: string, data: ProjectYearData) => void;
 }) {
-  const data = useProjectExpensesByYear(project.id, year);
+  const data = useProjectExpensesByYear({ projectId: project.id }, year);
   useStableProjectSync(project.id, data, onData);
 
   return <ProjectRow project={project} data={data} month={month} />;

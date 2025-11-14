@@ -10,7 +10,7 @@ export default function ProjectOverviewSection({ project }: { project: Project }
 
   // Aggregate yearly expenses for chart
   const { byCategory, grandTotal, loading, error } = useProjectExpensesByYear(
-    project.id,
+    { projectId: project.id },
     new Date().getFullYear()
   );
 
